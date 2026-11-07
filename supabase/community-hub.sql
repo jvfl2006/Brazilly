@@ -54,3 +54,25 @@ grant select on public.community_suggestions to anon,authenticated;
 grant insert,update on public.community_suggestions to authenticated;
 grant select on public.community_suggestion_votes to anon,authenticated;
 grant insert,delete on public.community_suggestion_votes to authenticated;
+
+-- Não expor os UUIDs de quem apoiou uma sugestão. A função retorna somente
+-- contagem agregada e se o usuário atual já votou.
+create or replace function public.get_community_suggestion_vote_counts()
+returns table(suggestion_id uuid, vote_count bigint, has_voted boolean)
+language sql
+security definer
+set search_path = ''
+as $$
+ select s.id, count(v.user_id)::bigint,
+        coalesce(bool_or(v.user_id = (select auth.uid())), false)
+ from public.community_suggestions s
+ left join public.community_suggestion_votes v on v.suggestion_id = s.id
+ group by s.id;
+$$;
+revoke all on function public.get_community_suggestion_vote_counts() from public;
+grant execute on function public.get_community_suggestion_vote_counts() to anon, authenticated;
+drop policy if exists "Suggestion votes are publicly readable" on public.community_suggestion_votes;
+drop policy if exists "Users read their own votes" on public.community_suggestion_votes;
+create policy "Users read their own votes" on public.community_suggestion_votes
+ for select to authenticated using ((select auth.uid()) = user_id);
+revoke select on public.community_suggestion_votes from anon, authenticated;
