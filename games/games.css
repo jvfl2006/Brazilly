@@ -30,16 +30,15 @@
 .chess-room-heading{min-width:0;flex:1}.chess-room-heading h2{margin:0 0 4px;font-size:17px;overflow-wrap:anywhere}.chess-room-heading small{font-size:10px;color:var(--muted)}
 .chess-room-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(260px,.8fr);gap:18px;padding-top:18px}
 .chess-play-panel{min-width:0;display:flex;flex-direction:column;align-items:center;gap:10px}
-.chess-board-wrap{width:min(100%,620px);padding:8px;border:1px solid var(--border);border-radius:13px;background:#151820;box-shadow:0 12px 32px #0003}
-.chess-board{width:100%;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));overflow:hidden;border-radius:7px;touch-action:manipulation}
-.chess-square{position:relative;display:grid;place-items:center;min-width:0;min-height:0;padding:0;border:0;border-radius:0;cursor:pointer}
-.chess-square.is-light{background:#e8d8bd}.chess-square.is-dark{background:#927354}
-.chess-square.is-selected{box-shadow:inset 0 0 0 4px #f6d45c}
-.chess-square.is-target:after{content:"";position:absolute;width:24%;height:24%;border-radius:50%;background:#215c36a8}
-.chess-square.is-capture:after{content:"";position:absolute;inset:3px;border:4px solid #215c36a8;border-radius:50%}
-.chess-piece{position:relative;z-index:1;font-family:"Segoe UI Symbol","DejaVu Sans",serif;font-size:clamp(25px,5.2vw,60px);line-height:1;user-select:none}
-.white-piece{color:#fffdf6;text-shadow:0 1px 1px #34281c,0 2px 3px #34281c}
-.black-piece{color:#171717;text-shadow:0 1px 1px #f5e8d5}
+.chess-board-wrap{width:min(100%,680px);aspect-ratio:1;padding:9px;border:1px solid #ffffff18;border-radius:16px;background:linear-gradient(145deg,#202735,#111722);box-shadow:0 18px 48px #0006,0 0 0 1px #0005;box-sizing:border-box}
+.chess-board{width:100%;height:100%;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));overflow:hidden;border-radius:5px;touch-action:manipulation}
+.chess-square{position:relative;display:grid;place-items:center;min-width:0;min-height:0;padding:0;border:0;border-radius:0;cursor:pointer;overflow:hidden}
+.chess-square.is-light{background:#eeeed2}.chess-square.is-dark{background:#769656}
+.chess-square.is-selected{box-shadow:inset 0 0 0 4px #d9b44a}
+.chess-square.is-target:after{content:"";position:absolute;width:25%;height:25%;border-radius:50%;background:#253b2d80}
+.chess-square.is-capture:after{content:"";position:absolute;inset:3px;border:4px solid #253b2d99;border-radius:50%}
+.chess-piece-image{position:relative;z-index:1;display:block;width:88%;height:88%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none;filter:drop-shadow(0 1px 1px #0003);transition:transform .12s ease}
+.chess-square:hover .chess-piece-image{transform:scale(1.04)}
 .chess-coordinate{position:absolute;z-index:2;font-size:9px;font-weight:800;line-height:1;pointer-events:none}
 .chess-coordinate.rank{top:3px;left:4px;color:#33291e}.chess-coordinate.file{right:4px;bottom:3px;color:#33291e}
 .chess-player-bar{width:min(100%,620px);display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);font-size:11px}
@@ -82,7 +81,7 @@
  .games-room-card{align-items:flex-start;flex-direction:column}
  .games-room-card>.button{width:100%}
  .chess-room-top{gap:7px}.chess-room-top>.button{font-size:9px;padding:8px}
- .chess-piece{font-size:clamp(24px,9vw,42px)}
+  .chess-piece-image{width:88%;height:88%}
  .chess-board-wrap{padding:5px}
 }
 
