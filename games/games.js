@@ -13,6 +13,7 @@
   let selectedSquare = null;
   let legalTargets = [];
   let loading = false;
+  const chatMessageIds = new Set();
 
   const screen = document.getElementById('gamesScreen');
   if (!screen || screen.dataset.initialized === 'true') return;
@@ -165,10 +166,12 @@
   });
   $g('chessRoomMessageForm').addEventListener('submit',async e=>{
     e.preventDefault();if(!currentRoom)return;const input=$g('chessRoomMessageInput'),body=input.value.trim();if(!body)return;
-    input.disabled=true;
-    try{await api('send_message',{room_id:currentRoom,body});input.value='';await refreshRoomMessages();}
-    catch(error){notice(error.message,true);}
-    finally{input.disabled=false;input.focus();}
+    const roomId=currentRoom,tempId='pending-'+crypto.randomUUID();
+    appendChatMessage({id:tempId,user_id:currentUser.id,display_name:currentProfile?.display_name||currentProfile?.name||'Você',body,created_at:new Date().toISOString()});
+    input.value='';
+    try{const result=await api('send_message',{room_id:roomId,body});removeChatMessage(tempId);appendChatMessage(result.message);}
+    catch(error){removeChatMessage(tempId);notice(error.message,true);}
+    finally{input.focus();}
   });
   document.querySelectorAll('[data-games-home]').forEach(button=>button.addEventListener('click',()=>{if(typeof showScreen==='function')showScreen('homeScreen');}));
 
@@ -204,7 +207,7 @@
     roomChannel=db.channel('chess-room-'+roomId)
       .on('postgres_changes',{event:'*',schema:'public',table:'chess_games',filter:'room_id=eq.'+roomId},()=>refreshRoom())
       .on('postgres_changes',{event:'*',schema:'public',table:'chess_room_members',filter:'room_id=eq.'+roomId},()=>refreshRoom())
-      .on('postgres_changes',{event:'INSERT',schema:'public',table:'chess_room_messages',filter:'room_id=eq.'+roomId},()=>refreshRoomMessages())
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'chess_room_messages',filter:'room_id=eq.'+roomId},payload=>appendChatMessage(payload.new))
       .subscribe();
   }
   function leaveRoomView(){
@@ -220,10 +223,19 @@
       renderMembers();renderChat(state.messages||[]);renderGame();
     }catch(error){notice(error.message,true);}
   }
-  async function refreshRoomMessages(){
-    if(!currentRoom)return;
-    try{const state=await api('get_room',{room_id:currentRoom});if(roomState)roomState.messages=state.messages;renderChat(state.messages||[]);}
-    catch(error){console.warn('Falha ao atualizar chat da sala:',error);}
+  async function refreshRoomMessages(){return;}
+  function removeChatMessage(id){
+    const node=$g('chessRoomMessages').querySelector('[data-message-id="'+id+'"]');if(node)node.remove();chatMessageIds.delete(id);
+  }
+  function appendChatMessage(item){
+    if(!item?.id||chatMessageIds.has(item.id))return;
+    chatMessageIds.add(item.id);
+    const root=$g('chessRoomMessages'),row=document.createElement('article');row.dataset.messageId=item.id;
+    row.className='chess-chat-message'+(item.user_id===currentUser?.id?' mine':'');
+    const name=document.createElement('strong');name.textContent=item.user_id===currentUser?.id?'Você':item.display_name||'Jogador';
+    const body=document.createElement('p');body.textContent=item.body;
+    const time=document.createElement('time');time.textContent=new Date(item.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    row.append(name,body,time);root.append(row);root.scrollTop=root.scrollHeight;
   }
   function renderMembers(){
     const members=roomState?.members||[];$g('chessMemberCount').textContent=String(members.length);
@@ -239,15 +251,8 @@
     $g('chessStartGameButton').hidden=!(me?.role==='host'&&members.some(m=>m.seat==='white')&&members.some(m=>m.seat==='black')&&roomState?.game?.status!=='active');
   }
   function renderChat(messages){
-    const root=$g('chessRoomMessages');root.replaceChildren();
-    for(const item of messages){
-      const row=document.createElement('article');row.className='chess-chat-message'+(item.user_id===currentUser?.id?' mine':'');
-      const name=document.createElement('strong');name.textContent=item.user_id===currentUser?.id?'Você':item.display_name||'Jogador';
-      const body=document.createElement('p');body.textContent=item.body;
-      const time=document.createElement('time');time.textContent=new Date(item.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-      row.append(name,body,time);root.append(row);
-    }
-    root.scrollTop=root.scrollHeight;
+    const root=$g('chessRoomMessages');root.replaceChildren();chatMessageIds.clear();
+    for(const item of messages)appendChatMessage(item);
   }
   function renderGame(){
     const game=roomState?.game;
@@ -296,7 +301,9 @@
         promotion=({d:'q',q:'q',t:'r',r:'r',b:'b',c:'n',n:'n'})[choice]||'q';
       }
       const from=selectedSquare;selectedSquare=null;legalTargets=[];renderBoard();
-      try{notice('Registrando jogada...');await api('move',{room_id:currentRoom,from,to:square,promotion});await refreshRoom();notice('');}
+      const optimistic=new ChessCtor(chess.fen());
+      try{optimistic.move({from,to:square,promotion});chess=optimistic;renderBoard();}catch{}
+      try{const result=await api('move',{room_id:currentRoom,from,to:square,promotion});if(currentRoom&&roomState){roomState.game=result.game;renderGame();}notice('');}
       catch(error){notice(error.message,true);await refreshRoom();}
       return;
     }
