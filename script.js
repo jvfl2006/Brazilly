@@ -125,6 +125,89 @@ $('presentationSlides').addEventListener('scroll',()=>{
 },{passive:true});
 updatePresentation();
 
+
+const communityStatusLabels={received:'Recebida',reviewing:'Em análise',planned:'Planejada',implemented:'Implementada',declined:'Não será implementada'};
+const communityUpdateLabels={feature:'Nova funcionalidade',improvement:'Melhoria',fix:'Correção',in_progress:'Em desenvolvimento',consideration:'Em avaliação'};
+const communityCategoryLabels={feature:'Funcionalidade',improvement:'Melhoria',design:'Design',community:'Comunidade',other:'Outra'};
+function communityElement(tag,className,textValue){
+ const node=document.createElement(tag);if(className)node.className=className;if(textValue!==undefined)node.textContent=textValue;return node;
+}
+function communityDate(value){return new Date(value).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});}
+document.querySelectorAll('[data-hub-tab]').forEach(button=>button.addEventListener('click',()=>{
+ document.querySelectorAll('[data-hub-tab]').forEach(item=>item.classList.toggle('active',item===button));
+ $('communityUpdatesPanel').hidden=button.dataset.hubTab!=='updates';
+ $('communitySuggestionsPanel').hidden=button.dataset.hubTab!=='suggestions';
+}));
+$('refreshCommunityHubButton').addEventListener('click',loadCommunityHub);
+async function loadCommunityHub(){
+ const updatesRoot=$('communityUpdatesList'),suggestionsRoot=$('communitySuggestionsList');
+ updatesRoot.replaceChildren(communityElement('p','field-note','Carregando novidades...'));
+ suggestionsRoot.replaceChildren(communityElement('p','field-note','Carregando sugestões...'));
+ $('communityAdminPanel').hidden=!currentUser||!isModerator;
+ const [updatesResult,suggestionsResult]=await Promise.all([
+  db.from('brazilly_updates').select('id,title,body,update_type,created_at').eq('published',true).order('created_at',{ascending:false}).limit(60),
+  db.from('community_suggestions').select('id,author_id,title,description,category,status,moderator_response,created_at,updated_at').order('created_at',{ascending:false}).limit(100)
+ ]);
+ if(updatesResult.error){updatesRoot.replaceChildren(communityElement('p','field-note','Não foi possível carregar as novidades: '+updatesResult.error.message));}
+ else{
+  updatesRoot.replaceChildren();
+  if(!updatesResult.data?.length)updatesRoot.append(communityElement('p','community-empty','Ainda não há novidades publicadas. Assim que houver atualizações reais, elas aparecerão aqui.'));
+  for(const item of updatesResult.data){
+   const card=communityElement('article','community-update-card'),top=communityElement('div','community-card-top');
+   top.append(communityElement('span','community-type-badge type-'+item.update_type,communityUpdateLabels[item.update_type]||'Atualização'),communityElement('time','community-card-date',communityDate(item.created_at)));
+   card.append(top,communityElement('h4','',item.title),communityElement('p','community-card-body',item.body));updatesRoot.append(card);
+  }
+ }
+ if(suggestionsResult.error){suggestionsRoot.replaceChildren(communityElement('p','field-note','Não foi possível carregar as sugestões: '+suggestionsResult.error.message));return;}
+ const rows=suggestionsResult.data||[],authorIds=[...new Set(rows.map(x=>x.author_id))],suggestionIds=rows.map(x=>x.id);
+ const votesResult=await db.rpc('get_community_suggestion_vote_counts');
+ const voteCounts=new Map(),myVotes=new Set();
+ for(const vote of votesResult.data||[]){voteCounts.set(vote.suggestion_id,Number(vote.vote_count)||0);if(vote.has_voted)myVotes.add(vote.suggestion_id);}
+ suggestionsRoot.replaceChildren();
+ if(!rows.length)suggestionsRoot.append(communityElement('p','community-empty','Ainda não há sugestões. Sua ideia pode ser a primeira.'));
+ for(const item of rows){
+  const card=communityElement('article','community-suggestion-card'),top=communityElement('div','community-card-top');
+  top.append(communityElement('span','community-status-badge status-'+item.status,communityStatusLabels[item.status]||item.status),communityElement('time','community-card-date',communityDate(item.created_at)));
+  card.append(top,communityElement('h4','',item.title),communityElement('p','community-card-body',item.description));
+  const meta=communityElement('div','community-suggestion-meta');meta.append(communityElement('span','',communityCategoryLabels[item.category]||'Outra'),communityElement('span','','Por '+(currentUser&&item.author_id===currentUser.id?(currentProfile?.display_name||'Você'):'Pessoa da comunidade')));card.append(meta);
+  if(item.moderator_response){const response=communityElement('div','community-moderator-response');response.append(communityElement('strong','','Resposta da equipe'),communityElement('p','',item.moderator_response));card.append(response);}
+  const actions=communityElement('div','community-suggestion-actions'),vote=communityElement('button','button button-outline community-vote-button',(myVotes.has(item.id)?'♥ Apoiado':'♡ Apoiar')+' · '+(voteCounts.get(item.id)||0));
+  vote.type='button';vote.disabled=!currentUser;vote.title=currentUser?'Apoiar esta sugestão':'Entre na sua conta para apoiar';
+  vote.addEventListener('click',async()=>{
+   vote.disabled=true;
+   const result=myVotes.has(item.id)?await db.from('community_suggestion_votes').delete().eq('suggestion_id',item.id).eq('user_id',currentUser.id):await db.from('community_suggestion_votes').insert({suggestion_id:item.id,user_id:currentUser.id});
+   if(result.error){alert('Não foi possível registrar seu apoio: '+result.error.message);vote.disabled=false;return;}
+   await loadCommunityHub();
+  });
+  actions.append(vote);card.append(actions);
+  if(currentUser&&isModerator){
+   const controls=communityElement('div','community-moderator-controls'),status=communityElement('select','');
+   Object.entries(communityStatusLabels).forEach(([value,label])=>{const option=communityElement('option','',label);option.value=value;status.append(option);});status.value=item.status;
+   const response=communityElement('textarea','');response.rows=2;response.maxLength=2000;response.placeholder='Resposta pública da equipe (opcional)';response.value=item.moderator_response||'';
+   const save=communityElement('button','button button-primary','Salvar decisão');save.type='button';
+   save.addEventListener('click',async()=>{save.disabled=true;const {error}=await db.from('community_suggestions').update({status:status.value,moderator_response:response.value.trim()||null,updated_at:new Date().toISOString()}).eq('id',item.id);if(error){alert('Não foi possível atualizar a sugestão: '+error.message);save.disabled=false;return;}await loadCommunityHub();});
+   controls.append(status,response,save);card.append(controls);
+  }
+  suggestionsRoot.append(card);
+ }
+}
+$('communitySuggestionForm').addEventListener('submit',async event=>{
+ event.preventDefault();if(!currentUser){alert('Entre na sua conta para enviar uma sugestão.');return;}
+ const button=$('submitCommunitySuggestionButton');button.disabled=true;button.textContent='Enviando...';
+ const {error}=await db.from('community_suggestions').insert({author_id:currentUser.id,title:$('communitySuggestionTitle').value.trim(),category:$('communitySuggestionCategory').value,description:$('communitySuggestionDescription').value.trim()});
+ if(error)alert('Não foi possível enviar sua sugestão: '+error.message);
+ else{$('communitySuggestionForm').reset();alert('Sugestão enviada! Ela já está visível na Central da Comunidade.');}
+ button.disabled=false;button.textContent='Enviar sugestão';await loadCommunityHub();
+});
+$('communityUpdateForm').addEventListener('submit',async event=>{
+ event.preventDefault();if(!currentUser||!isModerator)return;
+ const button=$('communityUpdateForm').querySelector('button[type="submit"]');button.disabled=true;button.textContent='Publicando...';
+ const {error}=await db.from('brazilly_updates').insert({title:$('communityUpdateTitle').value.trim(),body:$('communityUpdateBody').value.trim(),update_type:$('communityUpdateType').value,created_by:currentUser.id});
+ if(error)alert('Não foi possível publicar a novidade: '+error.message);
+ else{$('communityUpdateForm').reset();alert('Novidade publicada.');}
+ button.disabled=false;button.textContent='Publicar novidade';await loadCommunityHub();
+});
+
 function showScreen(id) {
   screens.forEach(s => s.classList.toggle('active', s.id === id));
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -134,6 +217,7 @@ function showScreen(id) {
   if (id === 'messagesScreen') { renderConversationList(); scheduleUnreadRefresh(); }
   if (id === 'profileScreen') renderProfilePreview();
   if (id === 'moderationScreen') renderModerationReports();
+  if (id === 'communityHubScreen') loadCommunityHub();
   if (id === 'howItWorksScreen') { activePresentationSlide=0; goToPresentationSlide(0); }
 }
 document.querySelectorAll('[data-screen]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); showScreen(el.dataset.screen); }));
