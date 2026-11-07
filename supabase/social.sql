@@ -121,19 +121,26 @@ begin
     (b.blocker_id=p_user_id and b.blocked_id=v_me)) then
     raise exception 'Este perfil não está disponível.';
   end if;
-  if not public.can_view_profile(p_user_id) then
-    raise exception 'Este perfil é privado. Envie uma solicitação de amizade.';
-  end if;
   return query
   select p.user_id,p.display_name,
-    case when p.show_age then extract(year from age(current_date,p.birth_date))::integer else null end,
-    p.gender,p.bio,case when p.show_city then p.city else null end,p.education,
-    p.intentions,
-    coalesce((select array_agg(i.interest_name order by i.interest_name)
-      from public.user_interests i where i.user_id=p.user_id),'{}'::text[]),
-    coalesce((select array_agg(ph.storage_path order by ph.sort_order)
-      from public.profile_photos ph where ph.user_id=p.user_id),'{}'::text[]),
-    p.religion,p.profession,p.relationship_status,p.is_private
+    case when public.can_view_profile(p.user_id) and p.show_age then extract(year from age(current_date,p.birth_date))::integer else null end,
+    case when public.can_view_profile(p.user_id) then p.gender else null end,
+    case when public.can_view_profile(p.user_id) then p.bio else 'Perfil privado · envie uma solicitação de amizade.' end,
+    case when public.can_view_profile(p.user_id) and p.show_city then p.city else null end,
+    case when public.can_view_profile(p.user_id) then p.education else null end,
+    case when public.can_view_profile(p.user_id) then p.intentions else '{}'::text[] end,
+    case when public.can_view_profile(p.user_id) then
+      coalesce((select array_agg(i.interest_name order by i.interest_name)
+        from public.user_interests i where i.user_id=p.user_id),'{}'::text[])
+      else '{}'::text[] end,
+    case when public.can_view_profile(p.user_id) then
+      coalesce((select array_agg(ph.storage_path order by ph.sort_order)
+        from public.profile_photos ph where ph.user_id=p.user_id),'{}'::text[])
+      else '{}'::text[] end,
+    case when public.can_view_profile(p.user_id) then p.religion else null end,
+    case when public.can_view_profile(p.user_id) then p.profession else null end,
+    case when public.can_view_profile(p.user_id) then p.relationship_status else null end,
+    p.is_private
   from public.profiles p where p.user_id=p_user_id;
 end;
 $details$;
@@ -184,10 +191,17 @@ begin
     select pr.user_id,pr.display_name,
       extract(year from age(current_date,pr.birth_date))::integer as calculated_age,
       case when pr.show_age then extract(year from age(current_date,pr.birth_date))::integer else null end as public_age,
-      pr.gender,pr.bio,case when pr.show_city then pr.city else null end as public_city,
-      pr.education,pr.intentions,
-      coalesce((select array_agg(ui.interest_name order by ui.interest_name) from public.user_interests ui where ui.user_id=pr.user_id),'{}'::text[]) as interest_list,
-      coalesce((select array_agg(pp.storage_path order by pp.sort_order) from public.profile_photos pp where pp.user_id=pr.user_id),'{}'::text[]) as photo_list,
+      case when not pr.is_private or public.can_view_profile(pr.user_id) then pr.gender else null end as public_gender,
+      case when not pr.is_private or public.can_view_profile(pr.user_id) then pr.bio else 'Perfil privado · envie uma solicitação de amizade.' end as public_bio,
+      case when (not pr.is_private or public.can_view_profile(pr.user_id)) and pr.show_city then pr.city else null end as public_city,
+      case when not pr.is_private or public.can_view_profile(pr.user_id) then pr.education else null end as public_education,
+      case when not pr.is_private or public.can_view_profile(pr.user_id) then pr.intentions else '{}'::text[] end as public_intentions,
+      case when not pr.is_private or public.can_view_profile(pr.user_id) then
+        coalesce((select array_agg(ui.interest_name order by ui.interest_name) from public.user_interests ui where ui.user_id=pr.user_id),'{}'::text[])
+        else '{}'::text[] end as interest_list,
+      case when not pr.is_private or public.can_view_profile(pr.user_id) then
+        coalesce((select array_agg(pp.storage_path order by pp.sort_order) from public.profile_photos pp where pp.user_id=pr.user_id),'{}'::text[])
+        else '{}'::text[] end as photo_list,
       ((case when p_gender is not null and pr.gender=p_gender then 1 else 0 end)+
        (case when p_intention is not null and p_intention=any(pr.intentions) then 1 else 0 end)+
        (case when p_interest is not null and exists(select 1 from public.user_interests ui where ui.user_id=pr.user_id and ui.interest_name ilike '%'||p_interest||'%') then 1 else 0 end)+
@@ -197,18 +211,13 @@ begin
     from public.profiles pr
     where pr.user_id<>v_uid
       and extract(year from age(current_date,pr.birth_date)) between p_min_age and p_max_age
-      and (not pr.is_private or exists(
-        select 1 from public.friend_requests fr
-        where fr.status='accepted' and
-          ((fr.requester_id=v_uid and fr.recipient_id=pr.user_id) or
-           (fr.requester_id=pr.user_id and fr.recipient_id=v_uid))))
-      and (not p_photos_only or exists(select 1 from public.profile_photos pp where pp.user_id=pr.user_id))
+      and (not p_photos_only or exists(select 1 from public.profile_photos pp where pp.user_id=pr.user_id and (not pr.is_private or public.can_view_profile(pr.user_id))))
       and not exists(select 1 from public.user_blocks b where
         (b.blocker_id=v_uid and b.blocked_id=pr.user_id) or
         (b.blocker_id=pr.user_id and b.blocked_id=v_uid))
   )
-  select c.user_id,c.display_name,c.public_age,c.gender,c.bio,c.public_city,
-    c.education,c.intentions,c.interest_list,c.photo_list,c.score
+  select c.user_id,c.display_name,c.public_age,c.public_gender,c.public_bio,c.public_city,
+    c.public_education,c.public_intentions,c.interest_list,c.photo_list,c.score
   from candidates c
   where not p_strict or c.score=
     ((p_gender is not null)::integer+(p_intention is not null)::integer+
@@ -219,3 +228,26 @@ end;
 $discover$;
 revoke all on function public.discover_profiles(integer,integer,text,text,text,text,text,text,boolean,boolean,integer) from public;
 grant execute on function public.discover_profiles(integer,integer,text,text,text,text,text,text,boolean,boolean,integer) to authenticated;
+
+
+-- Fotos de perfil passam a ser privadas no Storage. O acesso é feito por URLs
+-- assinadas, emitidas somente para o próprio usuário, perfis públicos ou amizades aceitas.
+update storage.buckets set public = false where id = 'profile-photos';
+drop policy if exists "profile_photos_public_read" on storage.objects;
+drop policy if exists "profile_photos_read_visible_profiles" on storage.objects;
+create policy "profile_photos_read_visible_profiles" on storage.objects
+for select to authenticated using (
+  bucket_id = 'profile-photos'
+  and exists (
+    select 1 from public.profiles p
+    where p.user_id::text = (storage.foldername(name))[1]
+      and public.can_view_profile(p.user_id)
+  )
+);
+
+-- Evita solicitações duplicadas em sentidos opostos para o mesmo par de usuários.
+create unique index if not exists friend_requests_one_per_pair_idx
+  on public.friend_requests (
+    least(requester_id, recipient_id),
+    greatest(requester_id, recipient_id)
+  );
