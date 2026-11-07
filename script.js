@@ -605,31 +605,24 @@ function subscribeToConversation(conversationId) {
       if(ticks){ticks.classList.toggle('is-read',Boolean(payload.new.read_at));ticks.title=payload.new.read_at?'Lida':'Enviada';}
     }).subscribe();
 }
-async function openConversation(conversationId, otherName, otherUserId) {
-  if (activeConversationChannel) { db.removeChannel(activeConversationChannel); activeConversationChannel = null; }
-  activeConversationId = conversationId;
-  activeConversationOtherUserId = otherUserId || null;
-  $('conversationName').dataset.originalName=otherName||'Conversa';
-  $('conversationName').textContent = otherName || 'Conversa';
-  $('conversationNickname').value='';
-  $('conversationWallpaper').value='default';
-  $('conversationMessages').innerHTML='<p class="field-note">Carregando mensagens...</p>';
-  $('conversationStatus').textContent = 'Conversa privada · mensagens em tempo real';
-  $('conversationPlaceholder').hidden = true;
-  $('activeConversation').hidden = false;
-  const [settingsResult] = await Promise.all([
-    db.from('conversation_user_settings').select('nickname,wallpaper')
-      .eq('user_id',currentUser.id).eq('conversation_id',conversationId).maybeSingle(),
-    loadConversationMessages(conversationId)
-  ]);
-  if (conversationId !== activeConversationId) return;
-  const {data:settings,error:settingsError}=settingsResult;
-  if(settingsError)console.warn('Não foi possível carregar personalização da conversa:',settingsError.message);
-  if(settings){$('conversationNickname').value=settings.nickname||'';$('conversationWallpaper').value=settings.wallpaper||'default';}
-  $('conversationName').textContent=settings?.nickname||otherName||'Conversa';
-  applyConversationWallpaper(settings?.wallpaper||'default');
-  subscribeToConversation(conversationId);
-  $('directMessageInput').focus();
+async function openConversation(conversationId,otherName,otherUserId){
+ if(activeConversationChannel){db.removeChannel(activeConversationChannel);activeConversationChannel=null;}
+ activeConversationId=conversationId;activeConversationOtherUserId=otherUserId||null;
+ $('conversationName').dataset.originalName=otherName||'Conversa';$('conversationName').textContent=otherName||'Conversa';
+ applyConversationAvatar(otherUserId,otherName,conversationAvatarUrls.get(otherUserId));
+ $('conversationNickname').value='';$('conversationWallpaper').value='default';
+ $('conversationMessages').innerHTML='<p class="field-note">Carregando mensagens...</p>';
+ $('conversationStatus').textContent='Conversa privada · mensagens em tempo real';$('conversationPlaceholder').hidden=true;$('activeConversation').hidden=false;
+ const [settingsResult]=await Promise.all([
+  db.from('conversation_user_settings').select('nickname,wallpaper').eq('user_id',currentUser.id).eq('conversation_id',conversationId).maybeSingle(),
+  loadConversationMessages(conversationId),fetchConversationAvatarPaths([otherUserId])
+ ]);
+ if(conversationId!==activeConversationId)return;
+ applyConversationAvatar(otherUserId,otherName,conversationAvatarUrls.get(otherUserId));
+ const {data:settings,error:settingsError}=settingsResult;if(settingsError)console.warn('Não foi possível carregar personalização da conversa:',settingsError.message);
+ if(settings){$('conversationNickname').value=settings.nickname||'';$('conversationWallpaper').value=settings.wallpaper||'default';}
+ $('conversationName').textContent=settings?.nickname||otherName||'Conversa';applyConversationWallpaper(settings?.wallpaper||'default');
+ subscribeToConversation(conversationId);$('directMessageInput').focus();
 }
 async function startDirectConversation(otherUserId, otherName) {
   if (!currentUser) { closeModal('profileDetailModal'); openModal('loginModal'); return; }
@@ -670,39 +663,32 @@ async function renderFriendRequests(){
   }
 }
 let conversationListLoadVersion = 0;
-async function renderConversationList() {
-  const root = $('conversationList');
-  if (!root) return;
-  const version = ++conversationListLoadVersion;
-  if (!currentUser) { root.textContent = 'Entre na sua conta para ver suas conversas.'; return; }
-  root.innerHTML = '<p class="field-note">Carregando conversas...</p>';
-  const [requestsResult, conversationsResult] = await Promise.all([
-    renderFriendRequests(),
-    db.rpc('list_my_conversations_fast')
-  ]);
-  if (version !== conversationListLoadVersion) return;
-  const {data:rows,error} = conversationsResult;
-  if (error) { root.textContent = 'Não foi possível carregar conversas: ' + error.message; return; }
-  if (!rows?.length) { root.textContent = 'Você ainda não iniciou nenhuma conversa. Abra um perfil para mandar a primeira mensagem.'; return; }
-  const fragment = document.createDocumentFragment();
-  for (const row of rows) {
-    const item = document.createElement('button');
-    item.type = 'button';
-    item.className = 'conversation-list-item' + (row.conversation_id === activeConversationId ? ' active' : '');
-    const name = document.createElement('strong');
-    name.textContent = row.nickname || row.display_name || 'Usuário';
-    const preview = document.createElement('span');
-    preview.textContent = row.last_message_body || 'Conversa iniciada';
-    const date = document.createElement('small');
-    const lastActivity = row.last_message_created_at || row.updated_at;
-    date.textContent = lastActivity ? new Date(lastActivity).toLocaleDateString('pt-BR') : '';
-    item.append(name,preview,date);
-    item.addEventListener('click',()=>openConversation(row.conversation_id,row.display_name,row.other_user_id));
-    fragment.append(item);
-  }
-  root.replaceChildren(fragment);
+const conversationAvatarUrls=new Map();
+function profilePhotoUrl(path){if(!path)return '';return db.storage.from('profile-photos').getPublicUrl(path).data?.publicUrl||'';}
+function applyConversationAvatar(userId,name,path){const avatar=$('conversationAvatar');if(!avatar)return;const url=profilePhotoUrl(path);avatar.classList.toggle('has-photo',!!url);avatar.style.backgroundImage=url?'url("'+url+'")':'';avatar.textContent=url?'':(name||'B').trim().slice(0,1).toUpperCase();$('openChatAvatarButton').disabled=!userId;}
+async function fetchConversationAvatarPaths(userIds){const ids=[...new Set((userIds||[]).filter(Boolean))];if(!ids.length)return;const {data,error}=await db.rpc('get_conversation_avatars',{p_user_ids:ids});if(error){console.warn('Não foi possível carregar fotos dos contatos:',error.message);return;}for(const item of data||[])conversationAvatarUrls.set(item.user_id,item.storage_path);}
+async function renderConversationList(){
+ const root=$('conversationList');if(!root)return;const version=++conversationListLoadVersion;
+ if(!currentUser){root.textContent='Entre na sua conta para ver suas conversas.';return;}
+ root.innerHTML='<p class="field-note">Carregando conversas...</p>';
+ const [requestsResult,conversationsResult]=await Promise.all([renderFriendRequests(),db.rpc('list_my_conversations_fast')]);
+ if(version!==conversationListLoadVersion)return;
+ const {data:rows,error}=conversationsResult;if(error){root.textContent='Não foi possível carregar conversas: '+error.message;return;}
+ if(!rows?.length){root.textContent='Você ainda não iniciou nenhuma conversa. Abra um perfil para mandar a primeira mensagem.';return;}
+ await fetchConversationAvatarPaths(rows.map(row=>row.other_user_id));if(version!==conversationListLoadVersion)return;
+ const fragment=document.createDocumentFragment();
+ for(const row of rows){
+  const item=document.createElement('button');item.type='button';item.className='conversation-list-item'+(row.conversation_id===activeConversationId?' active':'');
+  const avatar=document.createElement('span');avatar.className='conversation-list-avatar';const photo=profilePhotoUrl(conversationAvatarUrls.get(row.other_user_id));
+  if(photo){avatar.style.backgroundImage='url("'+photo+'")';avatar.classList.add('has-photo');}else avatar.textContent=(row.display_name||'B').trim().slice(0,1).toUpperCase();
+  const details=document.createElement('span');details.className='conversation-list-details';
+  const name=document.createElement('strong');name.textContent=row.nickname||row.display_name||'Usuário';
+  const preview=document.createElement('span');preview.textContent=row.last_message_body||'Conversa iniciada';
+  const date=document.createElement('small'),lastActivity=row.last_message_created_at||row.updated_at;date.textContent=lastActivity?new Date(lastActivity).toLocaleDateString('pt-BR'):'';
+  details.append(name,preview,date);item.append(avatar,details);item.addEventListener('click',()=>openConversation(row.conversation_id,row.display_name,row.other_user_id));fragment.append(item);
+ }
+ root.replaceChildren(fragment);
 }
-
 function applyConversationWallpaper(value='default'){
   const root=$('conversationMessages');
   ['purple','midnight','forest'].forEach(name=>root.classList.remove('conversation-wallpaper-'+name));
@@ -725,6 +711,7 @@ $('saveConversationSettings').addEventListener('click',async()=>{
   $('saveConversationSettings').after(note);
   await renderConversationList();
 });
+$('openChatAvatarButton').addEventListener('click',()=>$('openChatProfileButton').click());
 $('openChatProfileButton').addEventListener('click',async()=>{
   if(!activeConversationId)return;
   const button=$('openChatProfileButton');button.disabled=true;button.textContent='Carregando...';
@@ -776,59 +763,30 @@ async function handleChatImage(file,type){
   await sendChatMedia(blob,type,mime);
 }
 $('chooseChatImage').addEventListener('click',()=>$('chatImageInput').click());
-$('chooseChatGif').addEventListener('click',()=>$('chatGifInput').click());
-$('chatImageInput').addEventListener('change',async e=>{
-  const file=e.target.files?.[0];e.target.value='';if(!file)return;
-  try{await handleChatImage(file,'image');}catch(error){alert('Falha ao enviar imagem: '+error.message);}
-});
-$('chatGifInput').addEventListener('change',async e=>{
-  const file=e.target.files?.[0];e.target.value='';if(!file)return;
-  const type=file.type==='image/gif'?'gif':'sticker';
-  try{await handleChatImage(file,type);}catch(error){alert('Falha ao enviar GIF/figurinha: '+error.message);}
-});
+$('chatImageInput').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;const type=file.type==='image/gif'?'gif':'image';try{await handleChatImage(file,type);}catch(error){alert('Falha ao enviar arquivo: '+error.message);}});
 const emojis=['😀','😂','🥹','😍','😎','🤔','😭','😡','🤝','👍','👎','❤️','🔥','🎉','💀','🤡','🚀','🐸','🐱','🏍️','⚙️','🍕','☕','✨'];
-emojis.forEach(emoji=>{
-  const button=document.createElement('button');button.type='button';button.textContent=emoji;button.setAttribute('aria-label','Inserir '+emoji);
-  button.addEventListener('click',()=>{$('directMessageInput').value += emoji;$('directMessageInput').focus();});
-  $('emojiTray').append(button);
-});
+emojis.forEach(emoji=>{const button=document.createElement('button');button.type='button';button.textContent=emoji;button.setAttribute('aria-label','Inserir '+emoji);button.addEventListener('click',()=>{const input=$('directMessageInput'),start=input.selectionStart??input.value.length,end=input.selectionEnd??input.value.length;input.value=input.value.slice(0,start)+emoji+input.value.slice(end);input.setSelectionRange(start+emoji.length,start+emoji.length);input.focus();updateComposerAction();});$('emojiTray').append(button);});
 $('emojiToggle').addEventListener('click',()=>{$('emojiTray').hidden=!$('emojiTray').hidden;});
 let audioRecorder=null,audioChunks=[],recordingConversationId=null;
-$('recordAudioButton').addEventListener('click',async()=>{
-  const button=$('recordAudioButton'),status=$('audioRecordStatus');
-  if(audioRecorder?.state==='recording'){audioRecorder.stop();button.textContent='● Gravar áudio';status.textContent='Processando áudio...';return;}
-  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){alert('Gravação de áudio não é compatível com este navegador.');return;}
-  try{
-    recordingConversationId=activeConversationId;
-    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    const preferred=['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/mp4'].find(type=>MediaRecorder.isTypeSupported(type));
-    audioRecorder=new MediaRecorder(stream,preferred?{mimeType:preferred}:undefined);audioChunks=[];
-    audioRecorder.ondataavailable=event=>{if(event.data.size)audioChunks.push(event.data);};
-    audioRecorder.onstop=async()=>{
-      stream.getTracks().forEach(track=>track.stop());
-      const blob=new Blob(audioChunks,{type:audioRecorder.mimeType||'audio/webm'});
-      try{await sendChatMedia(blob,'audio',blob.type.split(';')[0],recordingConversationId);recordingConversationId=null;status.textContent='Áudio enviado.';}
-      catch(error){status.textContent='';alert('Falha ao enviar áudio: '+error.message);}
-      audioRecorder=null;
-    };
-    audioRecorder.start();button.textContent='■ Parar gravação';status.textContent='Gravando...';
-  }catch(error){alert('Não foi possível acessar o microfone: '+error.message);}
-});
-
-$('directMessageForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const body = $('directMessageInput').value.trim();
-  if (!body || !activeConversationId || !currentUser) return;
-  const button = $('directMessageForm').querySelector('button');
-  button.disabled = true;
-  try {
-    const {error} = await db.from('messages').insert({conversation_id:activeConversationId,sender_id:currentUser.id,body});
-    if (error) throw error;
-    $('directMessageInput').value = '';
-  } catch (error) {
-    alert('Não foi possível enviar a mensagem: ' + error.message);
-  } finally { button.disabled = false; $('directMessageInput').focus(); }
-});
+const micIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>',sendIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',stopIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+function updateComposerAction(){const button=$('recordAudioButton'),input=$('directMessageInput');if(!button||audioRecorder?.state==='recording')return;const hasText=!!input.value.trim();button.innerHTML=hasText?sendIcon:micIcon;button.classList.toggle('is-send',hasText);button.setAttribute('aria-label',hasText?'Enviar mensagem':'Gravar áudio');button.title=hasText?'Enviar mensagem':'Gravar áudio';}
+$('directMessageInput').addEventListener('input',updateComposerAction);
+async function startAudioRecording(){
+ const button=$('recordAudioButton'),status=$('audioRecordStatus');if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){alert('Gravação de áudio não é compatível com este navegador.');return;}
+ try{
+  recordingConversationId=activeConversationId;const stream=await navigator.mediaDevices.getUserMedia({audio:true});const preferred=['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/mp4'].find(type=>MediaRecorder.isTypeSupported(type));
+  audioRecorder=new MediaRecorder(stream,preferred?{mimeType:preferred}:undefined);audioChunks=[];
+  audioRecorder.ondataavailable=event=>{if(event.data.size)audioChunks.push(event.data);};
+  audioRecorder.onstop=async()=>{stream.getTracks().forEach(track=>track.stop());const recorder=audioRecorder,blob=new Blob(audioChunks,{type:recorder?.mimeType||'audio/webm'});button.disabled=true;status.textContent='Enviando áudio...';
+   try{await sendChatMedia(blob,'audio',blob.type.split(';')[0],recordingConversationId);status.textContent='Áudio enviado.';}catch(error){status.textContent='';alert('Falha ao enviar áudio: '+error.message);}
+   finally{recordingConversationId=null;audioRecorder=null;button.disabled=false;$('directMessageInput').disabled=false;updateComposerAction();if(status.textContent==='Áudio enviado.')setTimeout(()=>{if(status.textContent==='Áudio enviado.')status.textContent='';},2500);}
+  };
+  audioRecorder.start();$('directMessageInput').disabled=true;button.innerHTML=stopIcon;button.classList.add('is-recording');button.setAttribute('aria-label','Parar e enviar áudio');button.title='Parar e enviar áudio';status.textContent='Gravando...';
+ }catch(error){recordingConversationId=null;audioRecorder=null;updateComposerAction();alert('Não foi possível acessar o microfone: '+error.message);}
+}
+$('recordAudioButton').addEventListener('click',async()=>{if(audioRecorder?.state==='recording'){audioRecorder.stop();$('recordAudioButton').classList.remove('is-recording');$('audioRecordStatus').textContent='Processando áudio...';return;}if($('directMessageInput').value.trim()){$('directMessageForm').requestSubmit();return;}await startAudioRecording();});
+async function sendDirectMessage(){const input=$('directMessageInput'),body=input.value.trim();if(!body||!activeConversationId||!currentUser)return;const button=$('recordAudioButton');button.disabled=true;try{const {error}=await db.from('messages').insert({conversation_id:activeConversationId,sender_id:currentUser.id,body});if(error)throw error;input.value='';updateComposerAction();}catch(error){alert('Não foi possível enviar a mensagem: '+error.message);}finally{button.disabled=false;input.focus();}}
+$('directMessageForm').addEventListener('submit',async e=>{e.preventDefault();if(!$('directMessageInput').value.trim())return;await sendDirectMessage();});updateComposerAction();
 window.addEventListener('beforeunload',()=>{if(activeConversationChannel)db.removeChannel(activeConversationChannel);});
 
 // O chat antigo de demonstração foi substituído pelo mensageiro persistente acima.
