@@ -27,8 +27,25 @@ async function refreshModerationAccess(){
 function updateHeaderAccountButtons(){
   $('signupButton').hidden=Boolean(currentProfile);
   $('moderationSettingsGroup').hidden=!isModerator;
+  $('emailAccountSettingsGroup').hidden=!currentUser;
   $('loginButton').textContent=currentUser?(currentProfile?'Minha conta':'Completar perfil'):'Entrar';
 }
+async function sendEmailVerificationLink(){
+  if(!currentUser?.email){alert('Entre na sua conta primeiro.');return;}
+  const button=$('sendEmailVerificationButton');
+  if(button){button.disabled=true;button.textContent='Enviando...';}
+  try{
+    const {error}=await db.auth.signInWithOtp({email:currentUser.email,options:{emailRedirectTo:window.location.origin,shouldCreateUser:false}});
+    if(error)throw error;
+    localStorage.setItem('brazilly.emailLinkPending',JSON.stringify({userId:currentUser.id,expiresAt:Date.now()+60*60*1000}));
+    alert('Enviamos um link para seu e-mail. Abra a mensagem e toque no link para confirmar que você tem acesso a esse endereço. Você continuará com sua conta normalmente.');
+    closeModal('emailVerificationModal');
+  }catch(error){console.error(error);alert('Não foi possível enviar o link: '+(error.message||'erro desconhecido'));}
+  finally{if(button){button.disabled=false;button.textContent='Enviar link de confirmação';}}
+}
+$('sendEmailVerificationButton').addEventListener('click',sendEmailVerificationLink);
+$('settingsEmailVerificationButton').addEventListener('click',sendEmailVerificationLink);
+$('skipEmailVerificationButton').addEventListener('click',()=>closeModal('emailVerificationModal'));
 function showScreen(id) {
   screens.forEach(s => s.classList.toggle('active', s.id === id));
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -188,6 +205,7 @@ async function syncProfileToSupabase(p){
 }
 async function saveProfile(){
   const p=getFormProfile();
+  let createdAccount=false;
   try{
     $('wizardNext').disabled=true;$('wizardNext').textContent='Salvando...';
     if(!db)throw new Error('O serviço de autenticação não carregou. Atualize a página.');
@@ -196,13 +214,15 @@ async function saveProfile(){
       if(error)throw error;
       if(!data.session){
         const draft={...p,photos:[]};sessionStorage.setItem('brazilly.pendingProfile',JSON.stringify(draft));
-        $('profilePassword').value='';alert('Conta criada! Confirme seu e-mail pelo link enviado. Depois volte ao Brazilly e entre na conta para concluir a sincronização do perfil. Por segurança, as fotos precisam ser selecionadas novamente após a confirmação.');
+        $('profilePassword').value='';alert('A conta foi criada, mas o Supabase ainda está exigindo confirmação obrigatória. Para permitir acesso imediato, desative “Confirm email” em Authentication → Providers → Email no painel do Supabase. Depois disso, novos cadastros entrarão diretamente no Brazilly.');
         editingProfile=false;showScreen('homeScreen');return;
       }
-      currentUser=data.user;
+      currentUser=data.user;createdAccount=true;
     }
     await syncProfileToSupabase(p);
-    $('profilePassword').value='';editingProfile=false;updateHeaderAccountButtons();alert('Perfil salvo e sincronizado com sua conta Brazilly.');showScreen('profileScreen');
+    $('profilePassword').value='';editingProfile=false;updateHeaderAccountButtons();showScreen('profileScreen');
+    if(createdAccount){openModal('emailVerificationModal');}
+    else{alert('Perfil salvo e sincronizado com sua conta Brazilly.');}
   }catch(error){console.error(error);alert(`Não foi possível salvar seu perfil: ${error.message||'erro desconhecido'}. Confira sua conexão e tente novamente.`);}
   finally{$('wizardNext').disabled=false;setWizardStep(wizardStep);}
 }
@@ -235,6 +255,11 @@ async function initAuth(){
   db.auth.onAuthStateChange((event,sessionNow)=>{
     currentUser=sessionNow?.user||null;
     if(!currentUser){currentProfile=null;isModerator=false;updateHeaderAccountButtons();renderProfiles();return;}
+    const pendingEmailLink=JSON.parse(localStorage.getItem('brazilly.emailLinkPending')||'null');
+    if(event==='SIGNED_IN'&&pendingEmailLink?.userId===currentUser.id&&pendingEmailLink.expiresAt>Date.now()){
+      localStorage.removeItem('brazilly.emailLinkPending');
+      setTimeout(()=>alert('Acesso ao seu e-mail confirmado. Guarde esse endereço: ele pode ajudar a recuperar sua conta.'),0);
+    }else if(pendingEmailLink&&pendingEmailLink.expiresAt<=Date.now()){localStorage.removeItem('brazilly.emailLinkPending');}
     if(event==='PASSWORD_RECOVERY'){
       setTimeout(async()=>{const next=prompt('Digite sua nova senha (mínimo de 8 caracteres):');if(next&&next.length>=8){const {error}=await db.auth.updateUser({password:next});alert(error?error.message:'Senha atualizada com sucesso.');}else if(next!==null){alert('A senha precisa ter pelo menos 8 caracteres.');}},0);
     }
