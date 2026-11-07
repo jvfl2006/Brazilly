@@ -44,7 +44,18 @@
         <div id="activeConversation" class="active-conversation" hidden>
           <header class="conversation-header"><div class="conversation-title"><strong id="conversationName">Conversa</strong><small id="conversationStatus">Mensagens privadas</small></div><div class="conversation-header-actions"><button type="button" class="button button-small button-outline" id="openChatProfileButton">Ver perfil</button><details class="conversation-customize"><summary>Personalizar</summary><div class="conversation-customize-panel"><label for="conversationNickname">Apelido deste contato</label><input id="conversationNickname" maxlength="40" placeholder="Como quer chamar esta pessoa?"><label for="conversationWallpaper">Papel de parede</label><select id="conversationWallpaper"><option value="default">Padrão</option><option value="purple">Aurora roxa</option><option value="midnight">Meia-noite</option><option value="forest">Floresta</option></select><button type="button" class="button button-primary button-small" id="saveConversationSettings">Salvar</button></div></details></div></header>
           <div id="conversationMessages" class="conversation-messages" aria-live="polite"></div>
-          <form id="directMessageForm" class="direct-message-form"><input id="directMessageInput" maxlength="2000" autocomplete="off" placeholder="Escreva uma mensagem..." required><button class="button button-primary" type="submit">Enviar</button></form>
+          <div class="chat-media-tools">
+  <button type="button" class="button button-small button-outline" id="chooseChatImage">＋ Foto</button>
+  <select id="chatImageQuality" aria-label="Qualidade da imagem"><option value="0.9">Alta</option><option value="0.72" selected>Média</option><option value="0.5">Baixa</option></select>
+  <button type="button" class="button button-small button-outline" id="chooseChatGif">GIF / figurinha</button>
+  <input id="chatImageInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+  <input id="chatGifInput" type="file" accept="image/gif,image/png,image/webp" hidden>
+  <button type="button" class="button button-small button-outline" id="emojiToggle">☺ Emoji</button>
+  <button type="button" class="button button-small button-outline" id="recordAudioButton">● Gravar áudio</button>
+  <span id="audioRecordStatus" class="field-note" aria-live="polite"></span>
+</div>
+<div id="emojiTray" class="emoji-tray" hidden></div>
+<form id="directMessageForm" class="direct-message-form"><input id="directMessageInput" maxlength="2000" autocomplete="off" placeholder="Escreva uma mensagem..." required><button class="button button-primary" type="submit">Enviar</button></form>
         </div>
       </section>
     </div>
