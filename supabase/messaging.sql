@@ -74,6 +74,35 @@ $$;
 revoke all on function public.is_blocked_between(uuid,uuid) from public;
 grant execute on function public.is_blocked_between(uuid,uuid) to authenticated;
 
+revoke all on function public.is_blocked_between(uuid,uuid) from public;
+grant execute on function public.is_blocked_between(uuid,uuid) to authenticated;
+
+create or replace function public.list_my_conversations()
+returns table (
+  conversation_id uuid,
+  other_user_id uuid,
+  display_name text,
+  updated_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $
+  select c.id,
+    case when c.user_one=auth.uid() then c.user_two else c.user_one end,
+    p.display_name,
+    c.updated_at
+  from public.conversations c
+  join public.profiles p on p.user_id =
+    case when c.user_one=auth.uid() then c.user_two else c.user_one end
+  where auth.uid() in (c.user_one,c.user_two)
+    and not public.is_blocked_between(c.user_one,c.user_two)
+  order by c.updated_at desc;
+$;
+revoke all on function public.list_my_conversations() from public;
+grant execute on function public.list_my_conversations() to authenticated;
+
 alter table public.conversations enable row level security;
 alter table public.messages enable row level security;
 
