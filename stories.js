@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   if(typeof db==='undefined'||!db||!$('storiesStrip'))return;
-  let stories=[],viewerIndex=0,viewerTimer=null,loadVersion=0;
+  let stories=[],viewerIndex=0,viewerTimer=null,loadVersion=0,currentStoryId=null;
   async function loadStories(){
     const version=++loadVersion;
     const strip=$('storiesStrip');strip.innerHTML='';
@@ -53,6 +53,48 @@
     }
     if(own.length){const ownTile=add.querySelector('strong');ownTile.textContent='Seu story';}
   }
+  async function renderStoryReactions(story){
+    const root=$('storyReactionButtons'),summary=$('storyReactionSummary');
+    if(!root||!summary)return;
+    root.querySelectorAll('button').forEach(button=>{button.disabled=true;button.classList.remove('is-selected');});
+    summary.textContent='Carregando reações...';
+    const {data,error}=await db.from('story_reactions').select('user_id,reaction').eq('story_id',story.story_id);
+    if(error){summary.textContent='Reações indisponíveis no momento.';console.warn('Story reactions:',error);return;}
+    const counts=new Map();let mine=null;
+    for(const row of data||[]){counts.set(row.reaction,(counts.get(row.reaction)||0)+1);if(row.user_id===currentUser.id)mine=row.reaction;}
+    root.querySelectorAll('button').forEach(button=>{
+      const reaction=button.dataset.reaction,count=counts.get(reaction)||0;
+      button.disabled=story.user_id===currentUser.id;
+      button.classList.toggle('is-selected',mine===reaction);
+      button.setAttribute('aria-pressed',String(mine===reaction));
+      button.title=reaction+' · '+count+' reação(ões)';
+      button.textContent=count?reaction+' '+count:reaction;
+      button.dataset.count=String(count);
+    });
+    const total=Array.from(counts.values()).reduce((sum,count)=>sum+count,0);
+    summary.textContent=total?total+' '+(total===1?'reação':'reações')+(mine?' · sua reação: '+mine:''):'Seja a primeira pessoa a reagir.';
+  }
+  $('storyReactionButtons')?.addEventListener('click',async event=>{
+    const button=event.target.closest('button[data-reaction]');
+    if(!button||!currentUser||!currentStoryId)return;
+    const story=stories.find(item=>item.story_id===currentStoryId);
+    if(!story||story.user_id===currentUser.id)return;
+    const reaction=button.dataset.reaction;
+    button.disabled=true;
+    try{
+      const {data:existing,error:readError}=await db.from('story_reactions').select('reaction').eq('story_id',story.story_id).eq('user_id',currentUser.id).maybeSingle();
+      if(readError)throw readError;
+      if(existing?.reaction===reaction){
+        const {error}=await db.from('story_reactions').delete().eq('story_id',story.story_id).eq('user_id',currentUser.id);
+        if(error)throw error;
+      }else{
+        const {error}=await db.from('story_reactions').upsert({story_id:story.story_id,user_id:currentUser.id,reaction},{onConflict:'story_id,user_id'});
+        if(error)throw error;
+      }
+      await renderStoryReactions(story);
+    }catch(error){console.warn(error);$('storyReactionSummary').textContent='Não foi possível registrar sua reação. Tente novamente.';}
+    finally{button.disabled=false;}
+  });
   async function signedUrl(path){const {data,error}=await db.storage.from('story-media').createSignedUrl(path,3600);if(error)throw error;return data.signedUrl;}
   async function openViewer(story){
     const list=stories.filter(s=>s.user_id===story.user_id);viewerIndex=Math.max(0,list.findIndex(s=>s.story_id===story.story_id));
@@ -64,6 +106,8 @@
     viewerIndex=index;const story=list[index],image=$('storyViewerImage');
     $('storyViewerName').textContent=story.display_name||'Story';$('storyViewerCaption').textContent=story.caption||'';
     $('storyViewerProgress').style.width='0%';image.src=await signedUrl(story.media_path);
+    currentStoryId=story.story_id;
+    await renderStoryReactions(story);
     if(story.user_id!==currentUser.id&&!story.viewed_by_me){
       const {error}=await db.from('story_views').insert({story_id:story.story_id,viewer_id:currentUser.id});
       if(!error)story.viewed_by_me=true;
