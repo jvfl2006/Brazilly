@@ -80,6 +80,7 @@ function updateHeaderAccountButtons(){
   $('featureSignupButton').hidden=loggedIn;
   document.querySelector('.auth-switch-prompt')?.toggleAttribute('hidden',loggedIn);
   $('moderationSettingsGroup').hidden=!isModerator;
+  if($('adminScenesButton'))$('adminScenesButton').hidden=!isModerator;
   $('emailAccountSettingsGroup').hidden=!loggedIn;
   $('loginButton').textContent=loggedIn?(currentProfile?'Minha conta':'Completar perfil'):'Entrar';
 }
