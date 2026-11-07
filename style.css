@@ -32,3 +32,7 @@
 
 /* Pedidos de amizade opcionais */
 .friend-requests-section{margin:0 0 12px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}.friend-requests-section summary{cursor:pointer;font-size:12px;font-weight:700}.friend-requests-list{display:grid;gap:8px;padding-top:10px}.friend-request-item{display:grid;gap:7px;padding:9px;border-radius:8px;background:var(--surface)}.friend-request-item strong{font-size:12px}.friend-request-actions{display:flex;gap:6px}.friend-request-actions .button{flex:1;padding:7px;font-size:10px}
+
+
+/* Painel de moderação */
+.moderation-report-list{display:grid;gap:12px;margin-top:18px}.moderation-report-card{padding:16px;border:1px solid var(--border);border-radius:13px;background:var(--surface);display:grid;gap:10px}.moderation-report-heading{display:flex;justify-content:space-between;gap:12px;align-items:center}.moderation-report-heading strong{font-size:14px}.moderation-report-heading time,.moderation-report-card p{font-size:11px;color:var(--muted);line-height:1.6}.moderation-report-card p{margin:0;overflow-wrap:anywhere}.moderation-report-controls{display:flex;gap:8px;flex-wrap:wrap}.moderation-report-controls select{flex:1;min-width:140px}
