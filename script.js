@@ -477,10 +477,15 @@ function addMessageToView(message) {
     body.textContent = message.body;
     bubble.append(body);
   }
+  const meta = document.createElement('div'); meta.className='direct-message-meta';
   const time = document.createElement('time');
   time.dateTime = message.created_at;
   time.textContent = new Date(message.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-  bubble.append(time);
+  meta.append(time);
+  if(message.sender_id===currentUser?.id){
+    const ticks=document.createElement('span');ticks.className='message-read-ticks'+(message.read_at?' is-read':'');ticks.textContent='✓✓';ticks.title=message.read_at?'Lida':'Enviada';meta.append(ticks);
+  }
+  bubble.append(meta);
   root.append(bubble);
   root.scrollTop = root.scrollHeight;
 }
@@ -492,19 +497,26 @@ async function loadConversationMessages(conversationId) {
   messageCache.clear();
   (data || []).forEach(addMessageToView);
   const unread = (data || []).filter(m => m.sender_id !== currentUser.id && !m.read_at).map(m => m.id);
-  if (unread.length) {
-    const {error:readError} = await db.from('messages').update({read_at:new Date().toISOString()}).in('id', unread);
-    if (readError) console.warn('Não foi possível atualizar a confirmação de leitura:', readError.message);
-  }
+  if (unread.length) await markConversationMessagesRead(conversationId,unread);
 }
+async function markConversationMessagesRead(conversationId,ids){
+  const {data:settings,error:settingsError}=await db.from('profiles').select('read_receipts').eq('user_id',currentUser.id).maybeSingle();
+  if(settingsError||settings?.read_receipts===false)return;
+  let query=db.from('messages').update({read_at:new Date().toISOString()}).eq('conversation_id',conversationId).neq('sender_id',currentUser.id).is('read_at',null);
+  if(ids?.length)query=query.in('id',ids);
+  const {error}=await query;if(error)console.warn('Não foi possível atualizar a confirmação de leitura:',error.message);
+}
+async function markConversationMessageRead(messageId){if(!activeConversationId)return;await markConversationMessagesRead(activeConversationId,[messageId]);}
 function subscribeToConversation(conversationId) {
   if (activeConversationChannel) db.removeChannel(activeConversationChannel);
   activeConversationChannel = db.channel('messages-' + conversationId)
     .on('postgres_changes', {event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.' + conversationId}, payload => {
       addMessageToView(payload.new);
-      if (payload.new.sender_id !== currentUser?.id) {
-        db.from('messages').update({read_at:new Date().toISOString()}).eq('id',payload.new.id).then(({error})=>{if(error)console.warn(error.message);});
-      }
+      if (payload.new.sender_id !== currentUser?.id) markConversationMessageRead(payload.new.id);
+    })
+    .on('postgres_changes', {event:'UPDATE',schema:'public',table:'messages',filter:'conversation_id=eq.' + conversationId}, payload => {
+      const ticks=$('conversationMessages').querySelector('[data-message-id="'+payload.new.id+'"] .message-read-ticks');
+      if(ticks){ticks.classList.toggle('is-read',Boolean(payload.new.read_at));ticks.title=payload.new.read_at?'Lida':'Enviada';}
     }).subscribe();
 }
 async function openConversation(conversationId, otherName, otherUserId) {
