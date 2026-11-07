@@ -173,7 +173,7 @@ async function loadCommunityHub(){
   const card=communityElement('article','community-suggestion-card'),top=communityElement('div','community-card-top');
   top.append(communityElement('span','community-status-badge status-'+item.status,communityStatusLabels[item.status]||item.status),communityElement('time','community-card-date',communityDate(item.created_at)));
   card.append(top,communityElement('h4','',item.title),communityElement('p','community-card-body',item.description));
-  const meta=communityElement('div','community-suggestion-meta');meta.append(communityElement('span','',communityCategoryLabels[item.category]||'Outra'),communityElement('span','','Por '+(authorNames.get(item.author_id)||'Pessoa da comunidade')));card.append(meta);
+  const meta=communityElement('div','community-suggestion-meta');meta.append(communityElement('span','',communityCategoryLabels[item.category]||'Outra'),communityElement('span','','Por '+(currentUser&&item.author_id===currentUser.id?(currentProfile?.display_name||'Você'):'Pessoa da comunidade')));card.append(meta);
   if(item.moderator_response){const response=communityElement('div','community-moderator-response');response.append(communityElement('strong','','Resposta da equipe'),communityElement('p','',item.moderator_response));card.append(response);}
   const actions=communityElement('div','community-suggestion-actions'),vote=communityElement('button','button button-outline community-vote-button',(myVotes.has(item.id)?'♥ Apoiado':'♡ Apoiar')+' · '+(voteCounts.get(item.id)||0));
   vote.type='button';vote.disabled=!currentUser;vote.title=currentUser?'Apoiar esta sugestão':'Entre na sua conta para apoiar';
