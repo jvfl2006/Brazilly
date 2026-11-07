@@ -165,3 +165,9 @@ body.story-view-open{overflow:hidden}
 .conversation-messages{background-image:radial-gradient(circle at 20% 25%,#ffffff09 1px,transparent 1.5px),radial-gradient(circle at 70% 65%,#ffffff08 1px,transparent 1.5px),radial-gradient(circle at 40% 85%,#ffffff07 1px,transparent 1.5px);background-size:43px 47px,61px 59px,37px 41px}
 .community-messages{background-image:radial-gradient(circle at 20% 25%,#ffffff09 1px,transparent 1.5px),radial-gradient(circle at 70% 65%,#ffffff08 1px,transparent 1.5px);background-size:43px 47px,61px 59px}
 @media(max-width:620px){.stories-section{width:calc(100% - 24px);padding:16px}.community-message{max-width:92%}.story-composer-actions .button{flex:1}}
+
+/* Doodles discretos para dar identidade e conforto às conversas */
+.conversation-messages,.community-messages{
+ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='150' viewBox='0 0 180 150'%3E%3Cg fill='none' stroke='%23aab4c0' stroke-opacity='.075' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 24h25a7 7 0 0 1 7 7v13a7 7 0 0 1-7 7H31l-8 6v-6h-5a7 7 0 0 1-7-7V31a7 7 0 0 1 7-7z'/%3E%3Cpath d='M104 17l3 8 8 3-8 3-3 8-3-8-8-3 8-3z'/%3E%3Cpath d='M145 73c-8-10-23 1-12 12l12 11 12-11c11-11-4-22-12-12z'/%3E%3Ccircle cx='39' cy='111' r='13'/%3E%3Cpath d='M32 111h14M39 104v14M92 94c9-9 18 9 27 0M92 103c9-9 18 9 27 0'/%3E%3Cpath d='M151 128l4 4 8-10'/%3E%3C/g%3E%3C/svg%3E");
+ background-size:180px 150px;
+}
