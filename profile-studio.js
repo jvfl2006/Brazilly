@@ -634,8 +634,9 @@ async function renderPublic(profile){
     if(activePublicId!==profile.user_id){cleanupByRoot.get(wrap)?.();wrap.remove();}
   }catch(error){console.warn('Erro ao carregar o ambiente público:',error);}
 }
-function openEditor(){
+async function openEditor(){
   if(!currentUser||!currentProfile){alert('Entre na sua conta para personalizar seu perfil.');return;}
+  if(!$ps('profileCustomizationPreview')?.querySelector('.profile-custom-shell'))await renderOwn();
   setEditMode(true);
   $ps('profileWorldEditor')?.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
