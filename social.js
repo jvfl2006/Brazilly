@@ -69,7 +69,6 @@
       const list = $('brazilCities');
       cities.forEach(city => {
         const uf = city.microrregiao?.mesorregiao?.UF?.sigla
-          || city.regiao-imediata?.regiao-intermediaria?.UF?.sigla
           || city['regiao-imediata']?.['regiao-intermediaria']?.UF?.sigla;
         if (!uf || !city.nome) return;
         const option = document.createElement('option');
@@ -194,6 +193,8 @@
         add('✓ Amigos',()=>{},'button-primary');
       } else if (outgoing.data?.status === 'pending') {
         add('Solicitação enviada',()=>{});
+      } else if (outgoing.data?.status === 'rejected') {
+        add('Solicitação recusada',()=>{});
       } else {
         add('＋ Adicionar amigo', async () => {
           const {error}=await db.from('friend_requests').insert({requester_id:currentUser.id,recipient_id:otherId,status:'pending'});
