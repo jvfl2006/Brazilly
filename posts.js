@@ -3,7 +3,7 @@
 const $p = id => document.getElementById(id);
 const FILTERS = {none:'',warm:'sepia(.18) saturate(1.12) contrast(1.03)',mono:'grayscale(1)',vivid:'saturate(1.45) contrast(1.08)',cool:'saturate(.88) hue-rotate(12deg) contrast(1.04)'};
 const MAX_FILES=10, IMAGE_LIMIT=15*1024*1024, VIDEO_LIMIT=50*1024*1024;
-let selectedFiles=[], previewUrls=[], feedLoading=false, editingPost=null, editorItems=[], editorOriginalMedia=[];
+let selectedFiles=[], previewUrls=[], feedLoading=false, editingPost=null, editorItems=[], editorOriginalMedia=[], studioReady=null;
 function postNotice(message,error=false){const status=$p('postComposerStatus');if(status){status.textContent=message;status.classList.toggle('is-error',error);}else alert(message);}
 function clearPreviews(){previewUrls.forEach(url=>URL.revokeObjectURL(url));previewUrls=[];}
 function applyFilter(element,name){element.style.filter=FILTERS[name]||'';}
@@ -16,6 +16,10 @@ function renderPreview(){
   if(file.type.startsWith('video/')){media=document.createElement('video');media.src=url;media.muted=true;media.playsInline=true;}
   else{media=document.createElement('img');media.src=url;media.alt='Prévia da mídia '+(index+1);}
   applyFilter(media,$p('postFilter').value);item.append(media);
+  if(file.type.startsWith('image/')&&file.type!=='image/gif'){
+   const edit=makeButton('✎ Editar','post-preview-edit',async()=>{edit.disabled=true;try{const api=await studioReady;const result=await api.edit(file);if(result&&selectedFiles[index]===file){selectedFiles[index]=result;renderPreview();}}catch(error){postNotice(error.message||'Não foi possível abrir o editor.',true);}finally{edit.disabled=false;}});
+   item.append(edit);
+  }else if(file.type.startsWith('video/')){const note=document.createElement('span');note.className='post-preview-video-note';note.textContent='Editor de vídeo em breve';item.append(note);}
   const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.setAttribute('aria-label','Remover arquivo');remove.addEventListener('click',()=>{selectedFiles.splice(index,1);renderPreview();});
   item.append(remove);root.append(item);
  });
@@ -68,6 +72,15 @@ async function openPostEditor(post,media){
 function closePostEditor(){const modal=$p('postEditorModal');if(!modal)return;modal.hidden=true;document.body.style.overflow='';editorItems.forEach(item=>{if(item.objectUrl)URL.revokeObjectURL(item.objectUrl);});editorItems=[];editorOriginalMedia=[];editingPost=null;$p('postEditorFileInput').value='';}
 function editorMessage(message,error=false){const el=$p('postEditorStatus');el.textContent=message;el.classList.toggle('is-error',error);}
 function setEditorFilter(name){$p('postEditorFilter').value=name;document.querySelectorAll('[data-editor-filter]').forEach(button=>button.classList.toggle('is-active',button.dataset.editorFilter===name));renderPostEditor();}
+async function editExistingPhoto(item){
+ try{
+  const api=await studioReady;let file=item.file;
+  if(!file){const response=await fetch(item.signedUrl);if(!response.ok)throw new Error('Não foi possível baixar a foto para edição.');const blob=await response.blob();file=new File([blob],'foto-original.'+((item.mime_type||'image/jpeg').split('/')[1]||'jpg'),{type:item.mime_type||blob.type||'image/jpeg'});}
+  const result=await api.edit(file);if(!result)return;
+  if(item.objectUrl)URL.revokeObjectURL(item.objectUrl);
+  item.file=result;item.objectUrl=URL.createObjectURL(result);item.media_type='image';item.mime_type=result.type;delete item.signedUrl;renderPostEditor();
+ }catch(error){editorMessage(error.message||'Não foi possível editar a foto.',true);}
+}
 function renderPostEditor(){
  const root=$p('postEditorMediaList');root.replaceChildren();$p('postEditorMediaCount').textContent=editorItems.length+'/10';
  editorItems.forEach((item,index)=>{
@@ -82,6 +95,7 @@ function renderPostEditor(){
   const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime';fileInput.hidden=true;
   fileInput.addEventListener('change',()=>{const file=fileInput.files?.[0];if(!file)return;if(!validMedia(file,editorMessage)){fileInput.value='';return;}if(editorItems[index].objectUrl)URL.revokeObjectURL(editorItems[index].objectUrl);const objectUrl=URL.createObjectURL(file);editorItems[index]={...editorItems[index],file,objectUrl,media_type:file.type.startsWith('video/')?'video':'image',mime_type:file.type};renderPostEditor();});
   const remove=makeButton('×','editor-remove',()=>{const removed=editorItems.splice(index,1)[0];if(removed.objectUrl)URL.revokeObjectURL(removed.objectUrl);renderPostEditor();});remove.setAttribute('aria-label','Remover mídia');
+  if(item.media_type==='image'){const editPhoto=makeButton('✎','',()=>editExistingPhoto(item));editPhoto.setAttribute('aria-label','Editar foto no Brazilly Studio');actions.append(editPhoto);}
   actions.append(up,down,replace,remove);card.append(fileInput,actions);root.append(card);
  });
 }
@@ -156,6 +170,7 @@ async function publishPost(event){
  finally{button.disabled=false;$p('closePostComposer').disabled=false;}
 }
 function initPosts(){
+ studioReady=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='studio.js';script.onload=()=>resolve(window.BrazillyStudio);script.onerror=()=>reject(new Error('Não foi possível carregar o Brazilly Studio.'));document.head.append(script);});
  $p('openPostComposer')?.addEventListener('click',openComposer);$p('closePostComposer')?.addEventListener('click',closeComposer);$p('postMediaInput')?.addEventListener('change',event=>{const incoming=[...(event.target.files||[])];for(const file of incoming){if(selectedFiles.length>=MAX_FILES){postNotice('Uma publicação pode ter até 10 arquivos.',true);break;}if(validMedia(file))selectedFiles.push(file);}event.target.value='';renderPreview();});
  $p('postFilter')?.addEventListener('change',renderPreview);$p('postComposer')?.addEventListener('submit',publishPost);
  $p('closePostEditor')?.addEventListener('click',closePostEditor);$p('cancelPostEditor')?.addEventListener('click',closePostEditor);$p('savePostEditor')?.addEventListener('click',savePostEditor);
