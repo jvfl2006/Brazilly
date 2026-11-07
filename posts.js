@@ -37,26 +37,25 @@ function openComposer(){if(!currentUser){openModal('loginModal');return;}const f
 function closeComposer(){const form=$p('postComposer');form.hidden=true;form.reset();selectedFiles=[];renderPreview();postNotice('');}
 function formatPostDate(value){return new Date(value).toLocaleString('pt-BR',{dateStyle:'medium',timeStyle:'short'});}
 function makeButton(label,className,handler){const b=document.createElement('button');b.type='button';b.className=className;b.textContent=label;b.addEventListener('click',handler);return b;}
-function mediaUrl(path){return db.storage.from('post-media').getPublicUrl(path).data.publicUrl;}
 async function loadPosts(){
  const root=$p('homePostsFeed');if(!root||!currentUser||feedLoading)return;feedLoading=true;root.replaceChildren();const loading=document.createElement('p');loading.className='field-note';loading.textContent='Carregando publicações...';root.append(loading);
  try{
-  const {data:posts,error}=await db.from('posts').select('id,user_id,caption,filter_name,created_at').order('created_at',{ascending:false}).limit(40);if(error)throw error;
+  const {data:posts,error}=await db.rpc('get_home_posts',{p_limit:40});if(error)throw error;
   if(!posts?.length){const empty=document.createElement('div');empty.className='post-feed-empty';empty.innerHTML='<strong>Seu feed ainda está vazio.</strong><span>Publique a primeira foto ou vídeo e dê início à movimentação por aqui.</span>';empty.append(makeButton('＋ Fazer a primeira publicação','button button-primary',openComposer));root.replaceChildren(empty);return;}
   const ids=posts.map(p=>p.id),users=[...new Set(posts.map(p=>p.user_id))];
-  const [mediaResult,likesResult,commentsResult,profilesResult]=await Promise.all([
+  const [mediaResult,likesResult,commentsResult]=await Promise.all([
    db.from('post_media').select('id,post_id,storage_path,media_type,mime_type,position').in('post_id',ids).order('position'),
    db.from('post_likes').select('post_id,user_id').in('post_id',ids),
-   db.from('post_comments').select('post_id').in('post_id',ids),
-   db.from('profiles').select('user_id,display_name').in('user_id',users)
+   db.from('post_comments').select('post_id').in('post_id',ids)
   ]);
-  for(const r of [mediaResult,likesResult,commentsResult,profilesResult])if(r.error)throw r.error;
-  const mediaByPost=new Map(),likesByPost=new Map(),commentsByPost=new Map(),names=new Map((profilesResult.data||[]).map(p=>[p.user_id,p.display_name||'Pessoa do Brazilly']));
-  for(const m of mediaResult.data||[]){if(!mediaByPost.has(m.post_id))mediaByPost.set(m.post_id,[]);mediaByPost.get(m.post_id).push(m);}
+  for(const r of [mediaResult,likesResult,commentsResult])if(r.error)throw r.error;
+  const mediaRows=await Promise.all((mediaResult.data||[]).map(async item=>{const {data,error}=await db.storage.from('post-media').createSignedUrl(item.storage_path,3600);if(error)throw error;return {...item,signedUrl:data.signedUrl};}));
+  const mediaByPost=new Map(),likesByPost=new Map(),commentsByPost=new Map();
+  for(const m of mediaRows){if(!mediaByPost.has(m.post_id))mediaByPost.set(m.post_id,[]);mediaByPost.get(m.post_id).push(m);}
   for(const l of likesResult.data||[]){likesByPost.set(l.post_id,(likesByPost.get(l.post_id)||[]).concat(l));}
   for(const c of commentsResult.data||[])commentsByPost.set(c.post_id,(commentsByPost.get(c.post_id)||0)+1);
   const fragment=document.createDocumentFragment();
-  for(const post of posts)fragment.append(renderPost(post,names.get(post.user_id)||'Pessoa do Brazilly',mediaByPost.get(post.id)||[],likesByPost.get(post.id)||[],commentsByPost.get(post.id)||0));
+  for(const post of posts)fragment.append(renderPost(post,post.display_name||'Pessoa do Brazilly',mediaByPost.get(post.id)||[],likesByPost.get(post.id)||[],commentsByPost.get(post.id)||0));
   root.replaceChildren(fragment);
  }catch(error){console.error('Falha ao carregar feed:',error);root.replaceChildren();const message=document.createElement('p');message.className='field-note';message.textContent='Não foi possível carregar o feed: '+error.message;root.append(message);}
  finally{feedLoading=false;}
@@ -70,8 +69,8 @@ function renderPost(post,name,media,likes,commentCount){
   const gallery=document.createElement('div');gallery.className='home-post-gallery';
   media.forEach((item,index)=>{
    const wrap=document.createElement('div');wrap.className='home-post-media';wrap.hidden=index!==0;applyFilter(wrap,post.filter_name);
-   if(item.media_type==='video'){const video=document.createElement('video');video.src=mediaUrl(item.storage_path);video.controls=true;video.playsInline=true;video.preload='metadata';wrap.append(video);}
-   else{const image=document.createElement('img');image.src=mediaUrl(item.storage_path);image.alt='Mídia publicada por '+name;image.loading='lazy';wrap.append(image);}
+   if(item.media_type==='video'){const video=document.createElement('video');video.src=item.signedUrl;video.controls=true;video.playsInline=true;video.preload='metadata';wrap.append(video);}
+   else{const image=document.createElement('img');image.src=item.signedUrl;image.alt='Mídia publicada por '+name;image.loading='lazy';wrap.append(image);}
    gallery.append(wrap);
   });
   if(media.length>1){let active=0;const controls=document.createElement('div');controls.className='home-post-gallery-controls';const previous=makeButton('‹','post-gallery-arrow',()=>show(active-1));const counter=document.createElement('span');counter.textContent='1 / '+media.length;const next=makeButton('›','post-gallery-arrow',()=>show(active+1));function show(nextIndex){active=(nextIndex+media.length)%media.length;[...gallery.children].forEach((el,i)=>el.hidden=i!==active);counter.textContent=(active+1)+' / '+media.length;}controls.append(previous,counter,next);gallery.append(controls);}
@@ -82,7 +81,7 @@ function renderPost(post,name,media,likes,commentCount){
  const commentsBox=document.createElement('div');commentsBox.className='home-post-comments';commentsBox.hidden=true;card.append(commentsBox);return card;
 }
 async function toggleComments(postId,root){if(!root.hidden){root.hidden=true;return;}root.hidden=false;await loadComments(postId,root);}
-async function loadComments(postId,root){root.replaceChildren();const loading=document.createElement('small');loading.textContent='Carregando comentários...';root.append(loading);try{const {data,error}=await db.from('post_comments').select('id,user_id,body,created_at').eq('post_id',postId).order('created_at',{ascending:true}).limit(60);if(error)throw error;const users=[...new Set((data||[]).map(x=>x.user_id))];const {data:profiles,error:profileError}=await db.from('profiles').select('user_id,display_name').in('user_id',users);if(profileError)throw profileError;const names=new Map((profiles||[]).map(p=>[p.user_id,p.display_name||'Pessoa']));root.replaceChildren();for(const item of data||[]){const row=document.createElement('p');row.className='post-comment';const author=document.createElement('strong');author.textContent=(names.get(item.user_id)||'Pessoa')+' ';row.append(author,document.createTextNode(item.body));root.append(row);}const form=document.createElement('form');form.className='post-comment-form';const input=document.createElement('input');input.maxLength=1000;input.required=true;input.placeholder='Escreva um comentário...';const send=document.createElement('button');send.type='submit';send.className='button button-primary';send.textContent='Enviar';form.append(input,send);form.addEventListener('submit',async e=>{e.preventDefault();send.disabled=true;const {error}=await db.from('post_comments').insert({post_id:postId,user_id:currentUser.id,body:input.value.trim()});if(error){postNotice('Não foi possível comentar: '+error.message,true);send.disabled=false;return;}await loadComments(postId,root);root.hidden=false;});root.append(form);}catch(error){root.textContent='Não foi possível carregar comentários: '+error.message;}}
+async function loadComments(postId,root){root.replaceChildren();const loading=document.createElement('small');loading.textContent='Carregando comentários...';root.append(loading);try{const {data,error}=await db.rpc('get_post_comments',{p_post_id:postId});if(error)throw error;root.replaceChildren();for(const item of data||[]){const row=document.createElement('p');row.className='post-comment';const author=document.createElement('strong');author.textContent=(item.display_name||'Pessoa')+' ';row.append(author,document.createTextNode(item.body));root.append(row);}const form=document.createElement('form');form.className='post-comment-form';const input=document.createElement('input');input.maxLength=1000;input.required=true;input.placeholder='Escreva um comentário...';const send=document.createElement('button');send.type='submit';send.className='button button-primary';send.textContent='Enviar';form.append(input,send);form.addEventListener('submit',async e=>{e.preventDefault();send.disabled=true;const {error}=await db.from('post_comments').insert({post_id:postId,user_id:currentUser.id,body:input.value.trim()});if(error){postNotice('Não foi possível comentar: '+error.message,true);send.disabled=false;return;}await loadComments(postId,root);root.hidden=false;});root.append(form);}catch(error){root.textContent='Não foi possível carregar comentários: '+error.message;}}
 async function publishPost(event){
  event.preventDefault();if(!currentUser){openModal('loginModal');return;}const caption=$p('postCaption').value.trim();if(!caption&&!selectedFiles.length){postNotice('Adicione uma foto, vídeo ou escreva uma legenda.',true);return;}
  const button=$p('publishPostButton');button.disabled=true;postNotice('Preparando publicação...');
