@@ -6,3 +6,13 @@
 
 .feed-page-container{width:min(1040px,calc(100% - 40px));margin:0 auto;padding:30px 0 70px}.feed-page-container>.inner-header{margin-bottom:28px}.feed-page-intro{padding:24px 28px;margin-bottom:22px;border:1px solid var(--border);border-radius:18px;background:linear-gradient(120deg,#8068ed16,transparent 70%),var(--surface)}.feed-page-intro h1{margin:7px 0;font-size:clamp(23px,3vw,32px);letter-spacing:-.7px}.feed-page-intro p{margin:0;color:var(--muted);font-size:13px}.feed-page-container .home-posts-section{margin:0;padding:0;border:0;background:transparent;gap:20px}.feed-page-container .home-posts-heading{padding:0 2px}.feed-page-container .home-posts-heading .section-kicker{display:none}.feed-page-container .home-posts-feed{max-width:760px}
 @media(max-width:650px){.feed-page-container{width:min(100% - 24px,1040px);padding:18px 0 45px}.feed-page-intro{padding:19px;margin-bottom:16px}.feed-page-container .home-posts-section{padding:0}}
+
+/* Brazilly Reels: isolated vertical feed at the bottom of the home page */
+.home-reels-section{width:min(1180px,calc(100% - 48px));margin:42px auto 52px;padding:30px 0 0;border-top:1px solid var(--border)}
+.reels-section-intro{margin:0 auto 18px;text-align:center}.reels-section-intro h2{margin:6px 0;font-size:clamp(24px,3vw,34px)}.reels-section-intro p{margin:0;color:var(--muted);font-size:13px}
+.reels-section{margin:0 auto;padding:18px;border:1px solid var(--border);border-radius:20px;background:var(--surface)}
+.reels-heading{max-width:760px;width:100%;margin:0 auto 16px}.reels-heading h2{font-size:18px}.reels-heading p{font-size:12px}
+.reels-feed{height:min(76vh,820px);min-height:520px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;scroll-behavior:smooth;padding:2px 10px 18px;max-width:780px;contain:layout paint}
+.reels-feed .home-post-card{margin:0 auto 20px;max-width:560px;scroll-snap-align:start}.reels-feed .home-post-media{aspect-ratio:4/5;max-height:620px}.reels-feed .home-post-media img,.reels-feed .home-post-media video{max-height:620px;object-fit:contain}
+.posts-loading,.posts-feed-end{text-align:center;padding:16px;color:var(--muted);font-size:12px}.posts-feed-sentinel{height:1px}
+@media(max-width:650px){.home-reels-section{width:calc(100% - 24px);margin:30px auto 36px;padding-top:22px}.reels-section{padding:12px}.reels-feed{height:72vh;min-height:440px;padding:0 3px 14px}.reels-feed .home-post-card{border-radius:13px}.reels-feed .home-post-media{aspect-ratio:4/5}.reels-heading{align-items:flex-start}.reels-heading>.button{width:auto}}
