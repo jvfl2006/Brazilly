@@ -3,6 +3,8 @@
   if (!window.supabase || !db) return;
 
   const glyph = { wk:'♔', wq:'♕', wr:'♖', wb:'♗', wn:'♘', wp:'♙', bk:'♚', bq:'♛', br:'♜', bb:'♝', bn:'♞', bp:'♟︎' };
+  let ChessCtor = null;
+  const chessLibraryReady = import('https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm').then(module => { ChessCtor = module.Chess; });
   let currentRoom = null;
   let roomChannel = null;
   let roomState = null;
@@ -160,6 +162,7 @@
     if(!requireAccount())return;
     currentRoom=roomId;$g('gamesDirectory').hidden=true;$g('chessRoomView').hidden=false;notice('');
     if(typeof showScreen==='function')showScreen('gamesScreen');
+    await chessLibraryReady;
     await refreshRoom();
     if(roomChannel)db.removeChannel(roomChannel);
     roomChannel=db.channel('chess-room-'+roomId)
@@ -223,7 +226,7 @@
     else if(game.status==='resigned')status.textContent='Desistência. '+(game.winner==='white'?'Brancas':'Pretas')+' venceram.';
     else status.textContent=(turn==='white'?'Vez das brancas':'Vez das pretas')+(chess.isCheck()?' · Xeque':'')+(canMove?' · É sua vez':'');
     resign.hidden=game.status!=='active'||!['white','black'].includes(me?.seat);
-    const history=chess.history();$g('chessMoveHistory').textContent=history.length?history.map((move,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+move).join('  '):'Nenhuma jogada ainda.';
+    const historyGame=new ChessCtor();if(game.pgn)historyGame.loadPgn(game.pgn);const history=historyGame.history();$g('chessMoveHistory').textContent=history.length?history.map((move,i)=>(i%2===0?Math.floor(i/2)+1+'. ':'')+move).join('  '):'Nenhuma jogada ainda.';
     renderBoard();
   }
   function renderBoard(){
