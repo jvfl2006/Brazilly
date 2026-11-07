@@ -410,8 +410,14 @@ $('saveActivityStatusButton').addEventListener('click',async()=>{
  try{
   const activityStatus=$('profileActivityStatus').value;
   const activityNote=$('profileActivityNote').value.trim();
-  const {error}=await db.from('profiles').update({activity_status:activityStatus,activity_note:activityNote||null,activity_updated_at:new Date().toISOString()}).eq('user_id',currentUser.id);
+  if(!db)throw new Error('A conexão com o banco de dados não está disponível. Atualize a página e tente novamente.');
+  const {data:updatedProfile,error}=await db.from('profiles')
+   .update({activity_status:activityStatus,activity_note:activityNote||null,activity_updated_at:new Date().toISOString()})
+   .eq('user_id',currentUser.id)
+   .select('user_id')
+   .maybeSingle();
   if(error)throw error;
+  if(!updatedProfile)throw new Error('O banco não confirmou a alteração do seu perfil. Verifique se você continua conectado e tente entrar novamente.');
   currentProfile={...currentProfile,activityStatus,activityNote};
   feedback.textContent='Status atualizado.';
   renderProfilePreview();
