@@ -60,6 +60,8 @@ document.querySelectorAll('[data-screen]').forEach(el => el.addEventListener('cl
 document.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', () => showScreen(el.dataset.open)));
 document.querySelectorAll('[data-scroll]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); showScreen('homeScreen'); setTimeout(() => $(el.dataset.scroll)?.scrollIntoView({behavior:'smooth'}), 80); }));
 $('heroDiscoverButton').addEventListener('click', () => showScreen('discoverScreen'));
+$('heroLoginButton').addEventListener('click', () => openModal('loginModal'));
+$('authExistingAccountButton').addEventListener('click', () => openModal('loginModal'));
 $('settingsButton').addEventListener('click', () => showScreen('settingsScreen'));
 mobileMenuButton.addEventListener('click', () => { const open = headerNav.classList.toggle('open'); mobileMenuButton.setAttribute('aria-expanded', String(open)); });
 
