@@ -245,8 +245,42 @@ function enhanceProfileCard(stage,preview,settings={}){
  installProfilePhotoViewer(stage);
 }
 async function renderOwn(){if(!currentUser||!currentProfile)return;try{const s=await load(currentUser.id);currentProfile.profileCustomization=s;await render($('profileCustomizationPreview'),currentProfile,s,true);const stage=$('profileCustomizationPreview')?.querySelector('.profile-world-stage-2d');const preview=$('profilePreview'),editProfile=$('profileEditButton');if(stage&&preview)enhanceProfileCard(stage,preview,s);if(stage&&editProfile){editProfile.classList.add('profile-world-edit-profile');stage.append(editProfile);}const page=$('profileScreen');if(page)page.classList.add('profile-world-page');}catch(e){console.warn(e);if($('profileCustomizationPreview'))$('profileCustomizationPreview').textContent='Não foi possível carregar seu ambiente personalizado.';}}
-function publicProfileCard(p,photosList){const card=el('section','profile-public-world-card');const heading=el('div','public-world-heading');heading.append(el('span','public-world-kicker','CONHEÇA ESTE CANTINHO'),el('h2','',p.display_name||p.name||'Perfil'));if(p.bio)heading.append(el('p','',p.bio));card.append(heading);if(p.interests?.length){const tags=el('div','public-world-tags');p.interests.slice(0,12).forEach(x=>tags.append(el('span','',x)));card.append(tags);}if(photosList.length){const gallery=el('div','public-world-gallery');photosList.slice(0,6).forEach(url=>{const img=el('img','');img.src=url;img.alt='Foto de '+(p.display_name||p.name||'perfil');gallery.append(img);});card.append(gallery);}return card;}
-async function renderPublic(p){if(!p?.user_id)return;activePublicId=p.user_id;try{const s=await load(p.user_id);if(activePublicId!==p.user_id)return;const target=$('profileDetailContent');if(!target)return;const old=target.querySelector('.profile-public-customization');if(old){cleanup.get(old)?.();old.remove();}const wrap=el('section','profile-public-customization');target.prepend(wrap);await render(wrap,p,s,false);if(activePublicId!==p.user_id){cleanup.get(wrap)?.();wrap.remove();return;}const stage=wrap.querySelector('.profile-world-stage-2d');if(stage){const photoList=await photos(p);if(activePublicId!==p.user_id)return;stage.append(publicProfileCard(p,photoList));installProfilePhotoViewer(stage);}}catch(e){console.warn('Erro ao carregar ambiente público:',e);}}
+function publicProfilePreview(p,photosList){
+ const preview=el('div','');
+ const statusLabels={available:'Disponível',busy:'Ocupado',away:'Ausente',offline:'Offline'};
+ const status=el('p','profile-activity-status',(statusLabels[p.activity_status||p.activityStatus]||'Disponível')+((p.activity_note||p.activityNote)?' · '+(p.activity_note||p.activityNote):''));
+ preview.append(status);
+ const city=p.show_city===false||p.showCity===false?'':(p.city||'');
+ if(city)preview.append(el('p','field-note',city));
+ if(photosList.length){const gallery=el('div','preview-photos');photosList.forEach(url=>{const img=el('img','');img.src=url;img.alt='Foto do perfil';gallery.append(img);});preview.append(gallery);}
+ if(p.bio)preview.append(el('p','',p.bio));
+ const fields=[['Gênero',p.gender],['Signo',p.zodiac],['Altura',p.height?String(p.height).replace(/\\s*cm$/i,'')+' cm':''],['Escolaridade',p.education],['Profissão',p.profession],['Religião / crença',p.religion],['Relacionamento',p.relationship_status||p.relationshipStatus],['Personalidade',p.personality],['Pets',p.pets],['Filhos',p.children],['Intenções',(p.intentions||[]).join(', ')]];
+ fields.filter(([,value])=>value!==undefined&&value!==null&&String(value).trim()).forEach(([label,value])=>preview.append(el('p','field-note',label+': '+value)));
+ if(p.interests?.length){preview.append(el('h3','', 'Interesses'));const tags=el('div','preview-tags');p.interests.forEach(value=>tags.append(el('span','',value)));preview.append(tags);}
+ return preview;
+}
+async function renderPublic(p){
+ if(!p?.user_id)return;
+ activePublicId=p.user_id;
+ try{
+  const s=await load(p.user_id);
+  if(activePublicId!==p.user_id)return;
+  const target=$('profileDetailContent');
+  if(!target)return;
+  target.querySelector('.profile-public-customization')?.remove();
+  const wrap=el('section','profile-public-customization profile-world-page');
+  target.replaceChildren(wrap);
+  await render(wrap,p,s,false);
+  if(activePublicId!==p.user_id){cleanup.get(wrap)?.();wrap.remove();return;}
+  const stage=wrap.querySelector('.profile-world-stage-2d');
+  if(stage){
+   const photoList=await photos(p);
+   if(activePublicId!==p.user_id)return;
+   const preview=publicProfilePreview(p,photoList);
+   enhanceProfileCard(stage,preview,s);
+  }
+ }catch(e){console.warn('Erro ao carregar ambiente público:',e);}
+}
 async function openEditor(){if(!currentUser||!currentProfile){alert('Entre na sua conta para personalizar seu perfil.');return;}if(!$('profileCustomizationPreview')?.querySelector('.profile-custom-shell'))await renderOwn();setMode(true);$('profileWorldEditor')?.scrollIntoView({behavior:'smooth',block:'nearest'});}
 $('openProfileStudio')?.addEventListener('click',openEditor);document.addEventListener('brazilly:screen-changed',e=>{if(e.detail==='profileScreen')renderOwn();});document.addEventListener('brazilly:profile-opened',e=>renderPublic(e.detail));
 })();
