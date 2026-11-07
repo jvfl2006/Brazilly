@@ -107,6 +107,7 @@
     $('storyViewerName').textContent=story.display_name||'Story';$('storyViewerCaption').textContent=story.caption||'';
     $('storyViewerProgress').style.width='0%';image.src=await signedUrl(story.media_path);
     currentStoryId=story.story_id;
+    const replyForm=$('storyReplyForm');if(replyForm)replyForm.hidden=story.user_id===currentUser.id;
     await renderStoryReactions(story);
     if(story.user_id!==currentUser.id&&!story.viewed_by_me){
       const {error}=await db.from('story_views').insert({story_id:story.story_id,viewer_id:currentUser.id});
@@ -115,6 +116,24 @@
     let start=Date.now();const tick=()=>{const pct=Math.min(100,(Date.now()-start)/6000*100);$('storyViewerProgress').style.width=pct+'%';if(pct>=100)showStory(list,index+1);else viewerTimer=setTimeout(tick,80);};tick();
     $('storyViewerImage').onclick=()=>showStory(list,index+1);
   }
+  $('storyReplyForm')?.addEventListener('submit',async event=>{
+    event.preventDefault();const input=$('storyReplyInput'),body=input.value.trim();
+    if(!body||!currentUser||!currentStoryId)return;
+    const story=stories.find(item=>item.story_id===currentStoryId);
+    if(!story||story.user_id===currentUser.id)return;
+    const button=$('storyReplyForm').querySelector('button');button.disabled=true;
+    try{
+      const {data:conversationId,error:conversationError}=await db.rpc('get_or_create_conversation',{p_other_user:story.user_id});
+      if(conversationError)throw conversationError;
+      const {error}=await db.from('messages').insert({conversation_id:conversationId,sender_id:currentUser.id,body,message_type:'story_reply',story_id:story.story_id});
+      if(error)throw error;
+      input.value='';$('storyReplySummary')?.remove();
+      const note=document.createElement('small');note.id='storyReplySummary';note.className='story-reaction-summary';note.textContent='Resposta enviada para as mensagens.';
+      $('storyReplyForm').after(note);
+    }catch(error){console.warn('Story reply:',error);alert('Não foi possível responder ao story: '+error.message);}
+    finally{button.disabled=false;}
+  });
+  $('storyReplyInput')?.addEventListener('focus',()=>{if(viewerTimer)clearTimeout(viewerTimer);viewerTimer=null;});
   $('storyViewerClose').addEventListener('click',()=>{if(viewerTimer)clearTimeout(viewerTimer);$('storyViewer').hidden=true;document.body.classList.remove('story-view-open');loadStories();});
   $('storyComposerForm').addEventListener('submit',async e=>{
     e.preventDefault();if(!currentUser)return;
