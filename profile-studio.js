@@ -266,7 +266,10 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   selectionRing.rotation.x=Math.PI/2;selectionRing.visible=false;world.add(selectionRing);
   const raycaster=new T.Raycaster(),pointer=new T.Vector2(),groundPlane=new T.Plane(new T.Vector3(0,1,0),0),hitPoint=new T.Vector3();
   const parallax={x:0,y:0},baseCameraPosition=camera.position.clone(),reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const state={editing:false,selectedId:null,pendingType:null,dragging:false,pointerId:null,raf:0,stopped:false};
+  const state={editing:false,selectedId:null,pendingType:null,dragging:false,pointerId:null,raf:0,stopped:false,visible:!('IntersectionObserver' in window)};
+  let visibilityObserver=null;
+  const onDocumentVisibility=()=>{if(document.hidden){cancelAnimationFrame(state.raf);state.raf=0;}else if(state.visible&&!state.raf)animate();};
+  document.addEventListener('visibilitychange',onDocumentVisibility);
   const aspectCamera=()=>{
     const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight),aspect=w/h;
     camera.aspect=aspect;
@@ -294,7 +297,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     aspectCamera();
   };
   const dispose=()=>{
-    if(state.stopped)return;state.stopped=true;cancelAnimationFrame(state.raf);resizeObserver.disconnect();
+    if(state.stopped)return;state.stopped=true;cancelAnimationFrame(state.raf);resizeObserver.disconnect();visibilityObserver?.disconnect();document.removeEventListener('visibilitychange',onDocumentVisibility);
     stage.removeEventListener('pointerdown',onPointerDown);stage.removeEventListener('pointermove',onPointerMove);
     stage.removeEventListener('pointerup',onPointerUp);stage.removeEventListener('pointercancel',onPointerUp);
     renderer.dispose();renderer.forceContextLoss();
@@ -444,8 +447,8 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   }
   function animate(){
     if(state.stopped||!renderer.domElement.isConnected){dispose();return;}
+    if(!state.visible||document.hidden){state.raf=0;return;}
     state.raf=requestAnimationFrame(animate);
-    if(document.hidden)return;
     const t=reducedMotion?0:performance.now()*.001;
     if(!reducedMotion){camera.position.x+=(baseCameraPosition.x+parallax.x*.24-camera.position.x)*.025;camera.position.y+=(baseCameraPosition.y-parallax.y*.13-camera.position.y)*.025;camera.lookAt(parallax.x*.13,1.38-parallax.y*.06,-.1);}
     dust.rotation.y=Math.sin(t*.08)*.1;
@@ -453,7 +456,15 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     lampGlow.intensity=1.0+Math.sin(t*1.7)*.08;
     renderer.render(scene,camera);
   }
-  buildEditor();applyLook();animate();
+  buildEditor();applyLook();
+  if('IntersectionObserver' in window){
+    visibilityObserver=new IntersectionObserver(entries=>{
+      state.visible=entries.some(entry=>entry.isIntersecting);
+      if(state.visible&&!state.raf&&!document.hidden)animate();
+      else if(!state.visible&&state.raf){cancelAnimationFrame(state.raf);state.raf=0;}
+    });
+    visibilityObserver.observe(stage);
+  }else animate();
   return {dispose,setEditing(value){state.editing=value;state.pendingType=null;state.dragging=false;renderer.domElement.style.cursor=value?'move':'grab';if(!value)setSelected(null);},
     setSelected,rotateSelected,removeSelected,getSettings(){return clone(settings);},showObjectInfo,
     rebuild(){return this;}};
