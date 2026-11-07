@@ -104,16 +104,13 @@ Deno.serve(async (req: Request) => {
    const {error:deleteError}=await admin.from("chess_room_members").delete().eq("room_id",roomId).eq("user_id",user.id);if(deleteError)throw deleteError;
    if(member.role==="host"){
     const {data:remaining,error:remainingError}=await admin.from("chess_room_members").select("user_id,seat").eq("room_id",roomId).order("joined_at",{ascending:true});if(remainingError)throw remainingError;
-    if(!remaining?.length){await admin.from("chess_rooms").update({status:"closed",updated_at:new Date().toISOString()}).eq("id",roomId);}
-    else{
-     const next=remaining[0],seats=new Set(remaining.map(m=>m.seat));let nextSeat=next.seat;
-     if(next.seat==="spectator"){if(!seats.has("white"))nextSeat="white";else if(!seats.has("black"))nextSeat="black";}
-     const {error}=await admin.from("chess_room_members").update({role:"host",seat:nextSeat}).eq("room_id",roomId).eq("user_id",next.user_id);if(error)throw error;
-     await admin.from("chess_rooms").update({status:"open",updated_at:new Date().toISOString()}).eq("id",roomId);
-    }
-   }else{
-    await admin.from("chess_rooms").update({status:"open",updated_at:new Date().toISOString()}).eq("id",roomId);
+    if(!remaining?.length){await admin.from("chess_rooms").update({status:"closed",updated_at:new Date().toISOString()}).eq("id",roomId);return reply({ok:true});}
+    const next=remaining[0],seats=new Set(remaining.map(m=>m.seat));let nextSeat=next.seat;
+    if(next.seat==="spectator"){if(!seats.has("white"))nextSeat="white";else if(!seats.has("black"))nextSeat="black";}
+    const {error}=await admin.from("chess_room_members").update({role:"host",seat:nextSeat}).eq("room_id",roomId).eq("user_id",next.user_id);if(error)throw error;
    }
+   const {data:activeGame,error:activeError}=await admin.from("chess_games").select("id").eq("room_id",roomId).eq("status","active").maybeSingle();if(activeError)throw activeError;
+   await admin.from("chess_rooms").update({status:activeGame?"playing":"open",updated_at:new Date().toISOString()}).eq("id",roomId);
    return reply({ok:true});
   }
   if(action==="send_message"){
