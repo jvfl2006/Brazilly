@@ -97,7 +97,59 @@ async function render(root,profile,raw,editable=false){
  const update=()=>{s.theme=$('worldThemeSelect').value;s.room.time=$('worldTimeSelect').value;s.room.weather=$('worldWeatherSelect').value;s.accent=$('worldAccentSelect').value;ctl.apply();};$('worldSceneFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const status=$('worldSceneStatus');const allowed=['image/gif','image/webp','video/mp4','video/webm'];if(!allowed.includes(file.type)||file.size>30*1024*1024){status.textContent='Arquivo inválido. Use GIF, WebP, MP4 ou WebM de até 30 MB.';e.target.value='';return;}status.textContent='Enviando cenário...';try{const ext=file.type==='image/gif'?'gif':file.type==='image/webp'?'webp':file.type==='video/mp4'?'mp4':'webm';const path=currentUser.id+'/'+crypto.randomUUID()+'.'+ext;const {error}=await db.storage.from('profile-scenes').upload(path,file,{contentType:file.type,cacheControl:'31536000',upsert:false});if(error)throw error;s.room.background=path;s.room.backgroundType=ext;s.room.preset='';const {data,error:signedError}=await db.storage.from('profile-scenes').createSignedUrl(path,3600);if(signedError)throw signedError;const media=ext==='mp4'||ext==='webm'?el('video','profile-world-animated-background'):el('img','profile-world-animated-background');if(media.tagName==='VIDEO'){media.src=signedError? '':data.signedUrl;media.autoplay=true;media.loop=true;media.muted=true;media.playsInline=true;media.preload='metadata';}else{media.src=data.signedUrl;media.alt='Cenário animado do perfil';}m.bg.replaceChildren(media);$('worldSceneRemove').disabled=false;status.textContent='Cenário carregado. Salve para publicar no perfil.';}catch(err){status.textContent='Falha ao enviar: '+err.message;}finally{e.target.value='';}});$('worldSceneRemove').addEventListener('click',()=>{s.room.background='';s.room.backgroundType='';s.room.preset='';m.bg.innerHTML=scene(s);gallery.querySelectorAll('.profile-scene-card').forEach(x=>x.classList.remove('is-active'));$('worldSceneRemove').disabled=true;$('worldSceneStatus').textContent='Cenário padrão restaurado. Salve para confirmar.';});['worldThemeSelect','worldTimeSelect','worldWeatherSelect'].forEach(id=>$(id).addEventListener('change',update));$('worldAccentSelect').addEventListener('input',update);$('worldRotateObject').addEventListener('click',()=>ctl.rotate());$('worldRemoveObject').addEventListener('click',()=>ctl.remove());$('worldCancelEdit').addEventListener('click',renderOwn);
  $('worldSaveEdit').addEventListener('click',async()=>{const b=$('worldSaveEdit'),hint=$('worldEditorHint');if(!currentUser)return;b.disabled=true;b.textContent='Salvando...';try{s.quote=$('worldQuote').value.trim();s.music=$('worldMusic').value.trim();s.musicUrl=$('worldMusicUrl').value.trim();s.games=$('worldGames').value.trim();s.setup=$('worldSetup').value.trim();s.countdownTitle=$('worldCountdownTitle').value.trim();s.countdownDate=$('worldCountdownDate').value;s.links=$('worldLinks').value.split('\n').map(line=>{const a=line.split('|');return{label:(a.shift()||'').trim(),url:a.join('|').trim()};}).filter(x=>x.label&&safeUrl(x.url)).slice(0,8);const saved=norm(s),{error}=await db.from('profile_customizations').upsert({user_id:currentUser.id,settings:saved,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;cache.set(currentUser.id,saved);currentProfile.profileCustomization=saved;await renderOwn();}catch(e){hint.textContent='Não foi possível salvar: '+e.message;}finally{b.disabled=false;b.textContent='Salvar ambiente';}});
 }
-async function renderOwn(){if(!currentUser||!currentProfile)return;try{const s=await load(currentUser.id);currentProfile.profileCustomization=s;await render($('profileCustomizationPreview'),currentProfile,s,true);const stage=$('profileCustomizationPreview')?.querySelector('.profile-world-stage-2d');const preview=$('profilePreview'),editProfile=$('profileEditButton');if(stage&&preview){preview.classList.add('profile-world-profile-content');stage.append(preview);}if(stage&&editProfile){editProfile.classList.add('profile-world-edit-profile');stage.append(editProfile);}const page=$('profileScreen');if(page)page.classList.add('profile-world-page');}catch(e){console.warn(e);if($('profileCustomizationPreview'))$('profileCustomizationPreview').textContent='Não foi possível carregar seu ambiente personalizado.';}}
+function enhanceProfileCard(stage,preview){
+ if(!stage||!preview||stage.querySelector('.profile-world-profile-card'))return;
+ const identity=stage.querySelector('.profile-world-identity');
+ const card=el('section','profile-world-profile-card');
+ const heading=el('div','profile-world-card-heading');
+ const intro=el('div','profile-world-card-intro');
+ intro.append(el('span','profile-world-card-kicker','SEU ESPAÇO NO BRAZILLY'),el('p','profile-world-card-subtitle','Um pouco de quem você é, reunido em um só lugar.'));
+ heading.append(intro);
+ if(identity)heading.append(identity);
+ card.append(heading);
+ const tabs=el('nav','profile-world-profile-tabs');
+ tabs.setAttribute('aria-label','Seções do perfil');
+ const content=el('div','profile-world-profile-content');
+ const nodes=[...preview.children];
+ const about=el('section','profile-world-tab-panel is-active');about.dataset.profilePanel='about';
+ const photosPanel=el('section','profile-world-tab-panel');photosPanel.dataset.profilePanel='photos';
+ const interestsPanel=el('section','profile-world-tab-panel');interestsPanel.dataset.profilePanel='interests';
+ const details=el('div','profile-world-detail-grid');
+ let bioNode=null,statusNode=null,photosNode=null,tagsNode=null,interestsTitle=null;
+ nodes.forEach(node=>{
+  if(node.matches('.profile-activity-status'))statusNode=node;
+  else if(node.matches('.preview-photos'))photosNode=node;
+  else if(node.matches('.preview-tags'))tagsNode=node;
+  else if(node.tagName==='H3')interestsTitle=node;
+  else if(node.tagName==='H2'){}
+  else if(node.classList.contains('field-note'))details.append(node);
+  else if(node.tagName==='P')bioNode=node;
+ });
+ if(statusNode)about.append(statusNode);
+ if(bioNode)about.append(el('h3','profile-world-section-title','Sobre mim'),bioNode);
+ if(details.childElementCount){about.append(el('h3','profile-world-section-title','Mais sobre mim'),details);}
+ if(!about.childElementCount)about.append(el('p','profile-world-empty','Este perfil ainda não tem uma descrição.'));
+ if(photosNode){photosPanel.append(el('h3','profile-world-section-title','Minha galeria'),photosNode);}
+ else photosPanel.append(el('p','profile-world-empty','Ainda não há fotos publicadas.'));
+ if(interestsTitle||tagsNode){if(interestsTitle)interestsTitle.className='profile-world-section-title';if(interestsTitle)interestsPanel.append(interestsTitle);else interestsPanel.append(el('h3','profile-world-section-title','Meus interesses'));if(tagsNode)interestsPanel.append(tagsNode);}
+ else interestsPanel.append(el('p','profile-world-empty','Os interesses ainda não foram adicionados.'));
+ const sections=[['about','Sobre'],['photos','Fotos'],['interests','Interesses']];
+ sections.forEach(([key,label],index)=>{
+  const button=el('button','profile-world-tab'+(index===0?' is-active':''),label);
+  button.type='button';button.dataset.profileTab=key;button.setAttribute('aria-pressed',index===0?'true':'false');
+  button.addEventListener('click',()=>{
+   tabs.querySelectorAll('[data-profile-tab]').forEach(b=>{const active=b===button;b.classList.toggle('is-active',active);b.setAttribute('aria-pressed',active?'true':'false');});
+   content.querySelectorAll('[data-profile-panel]').forEach(panel=>panel.classList.toggle('is-active',panel.dataset.profilePanel===key));
+  });
+  tabs.append(button);
+ });
+ content.append(about,photosPanel,interestsPanel);
+ preview.classList.add('profile-world-profile-content');
+ preview.replaceChildren(content);
+ card.append(tabs,preview);
+ stage.append(card);
+}
+async function renderOwn(){if(!currentUser||!currentProfile)return;try{const s=await load(currentUser.id);currentProfile.profileCustomization=s;await render($('profileCustomizationPreview'),currentProfile,s,true);const stage=$('profileCustomizationPreview')?.querySelector('.profile-world-stage-2d');const preview=$('profilePreview'),editProfile=$('profileEditButton');if(stage&&preview)enhanceProfileCard(stage,preview);if(stage&&editProfile){editProfile.classList.add('profile-world-edit-profile');stage.append(editProfile);}const page=$('profileScreen');if(page)page.classList.add('profile-world-page');}catch(e){console.warn(e);if($('profileCustomizationPreview'))$('profileCustomizationPreview').textContent='Não foi possível carregar seu ambiente personalizado.';}}
 function publicProfileCard(p,photosList){const card=el('section','profile-public-world-card');const heading=el('div','public-world-heading');heading.append(el('span','public-world-kicker','CONHEÇA ESTE CANTINHO'),el('h2','',p.display_name||p.name||'Perfil'));if(p.bio)heading.append(el('p','',p.bio));card.append(heading);if(p.interests?.length){const tags=el('div','public-world-tags');p.interests.slice(0,12).forEach(x=>tags.append(el('span','',x)));card.append(tags);}if(photosList.length){const gallery=el('div','public-world-gallery');photosList.slice(0,6).forEach(url=>{const img=el('img','');img.src=url;img.alt='Foto de '+(p.display_name||p.name||'perfil');gallery.append(img);});card.append(gallery);}return card;}
 async function renderPublic(p){if(!p?.user_id)return;activePublicId=p.user_id;try{const s=await load(p.user_id);if(activePublicId!==p.user_id)return;const target=$('profileDetailContent');if(!target)return;const old=target.querySelector('.profile-public-customization');if(old){cleanup.get(old)?.();old.remove();}const wrap=el('section','profile-public-customization');target.prepend(wrap);await render(wrap,p,s,false);if(activePublicId!==p.user_id){cleanup.get(wrap)?.();wrap.remove();return;}const stage=wrap.querySelector('.profile-world-stage-2d');if(stage){const photoList=await photos(p);if(activePublicId!==p.user_id)return;stage.append(publicProfileCard(p,photoList));}}catch(e){console.warn('Erro ao carregar ambiente público:',e);}}
 async function openEditor(){if(!currentUser||!currentProfile){alert('Entre na sua conta para personalizar seu perfil.');return;}if(!$('profileCustomizationPreview')?.querySelector('.profile-custom-shell'))await renderOwn();setMode(true);$('profileWorldEditor')?.scrollIntoView({behavior:'smooth',block:'nearest'});}
