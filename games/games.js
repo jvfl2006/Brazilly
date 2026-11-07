@@ -13,17 +13,29 @@
   let legalTargets = [];
   let loading = false;
 
-  const screen = document.createElement('section');
-  screen.id = 'gamesScreen';
-  screen.className = 'games-home-section';
+  const screen = document.getElementById('gamesScreen');
+  if (!screen || document.getElementById('gamesEntry')) return;
   screen.innerHTML = `
     <div class="games-container">
       <header class="inner-header games-page-header">
-        <button class="back-button" type="button" data-games-home aria-label="Voltar">←</button>
-        <div><h2>Brazilly Games</h2><span class="status">Salas sociais para jogar e conversar</span></div>
-        <button class="button button-small button-outline" type="button" id="gamesRefreshButton">Atualizar</button>
+        <button class="back-button" type="button" data-games-home aria-label="Voltar à página inicial">←</button>
+        <div><h2>Jogos</h2><span class="status">Escolha o que quer jogar com a comunidade</span></div>
       </header>
       <section id="gamesDirectory">
+        <div class="games-catalog-grid">
+          <article class="games-catalog-card">
+            <div class="games-catalog-art" aria-hidden="true">♟</div>
+            <div class="games-catalog-copy"><span class="section-kicker">JOGO DISPONÍVEL</span><h3>Xadrez</h3><p>Crie uma sala, convide amigos, jogue ou acompanhe partidas em tempo real.</p></div>
+            <button class="button button-primary" type="button" id="openChessGameButton">Ver salas de xadrez →</button>
+          </article>
+        </div>
+      </section>
+      <section id="chessDirectory" hidden>
+        <header class="games-subpage-header">
+          <button class="back-button" type="button" id="chessBackToCatalog">←</button>
+          <div><h2>Xadrez</h2><span class="status">Salas para jogar e conversar</span></div>
+          <button class="button button-small button-outline" type="button" id="gamesRefreshButton">Atualizar</button>
+        </header>
         <div class="games-intro"><div><span class="section-kicker">JOGUE JUNTO</span><h1>Uma partida começa com uma conversa.</h1><p>Crie uma sala, convide alguém ou entre em uma mesa aberta. Quem não estiver jogando pode acompanhar e conversar.</p></div><div class="games-chess-mark">♞</div></div>
         <div class="games-directory-actions">
           <button class="button button-primary" type="button" id="gamesCreateRoomButton">＋ Criar sala de xadrez</button>
@@ -57,11 +69,13 @@
       </section>
       <p id="gamesNotice" class="games-notice" role="status"></p>
     </div>
-    <button class="games-float-jump" type="button" id="gamesFloatJump" aria-label="Descer até os jogos" title="Ir para os jogos">
+    <button class="games-float-jump" type="button" id="gamesFloatJump" aria-label="Descer até o espaço de jogos" title="Ir para os jogos">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 8.5h9a4.5 4.5 0 0 1 4.3 5.8l-.7 2.2a2.6 2.6 0 0 1-4.3 1.1l-1.5-1.4h-4.6l-1.5 1.4a2.6 2.6 0 0 1-4.3-1.1l-.7-2.2a4.5 4.5 0 0 1 4.3-5.8Z"/><path d="M8 11v4M6 13h4M15.5 12h.01M18 14h.01"/></svg>
     </button>`;
   const home = document.getElementById('homeScreen');
-  home?.append(screen);
+  const entry = document.getElementById('gamesEntry');
+  const floatButton = document.getElementById('gamesFloatJump');
+  if (entry && floatButton) { entry.append(floatButton); }
   const css = document.createElement('link');
   css.rel = 'stylesheet';
   css.href = 'games/games.css';
@@ -87,11 +101,13 @@
     return false;
   }
   function openGames() {
-    if(!requireAccount())return;
-    if(typeof showScreen==='function' && !document.getElementById('homeScreen')?.classList.contains('active'))showScreen('homeScreen');
-    requestAnimationFrame(()=>{$g('gamesScreen').scrollIntoView({behavior:'smooth',block:'start'});loadRooms();});
+    if(!document.getElementById('homeScreen')?.classList.contains('active') && typeof showScreen==='function')showScreen('homeScreen');
+    requestAnimationFrame(()=>$g('gamesEntry')?.scrollIntoView({behavior:'smooth',block:'start'}));
   }
   $g('gamesFloatJump').addEventListener('click',openGames);
+  $g('gamesExploreButton')?.addEventListener('click',()=>{if(typeof showScreen==='function')showScreen('gamesScreen');});
+  $g('openChessGameButton').addEventListener('click',()=>{$g('gamesDirectory').hidden=true;$g('chessDirectory').hidden=false;loadRooms();});
+  $g('chessBackToCatalog').addEventListener('click',()=>{$g('chessDirectory').hidden=true;$g('gamesDirectory').hidden=false;});
   $g('gamesRefreshButton').addEventListener('click',loadRooms);
   $g('gamesCreateRoomButton').addEventListener('click',()=>{if(requireAccount())$g('gamesCreateRoomForm').hidden=!$g('gamesCreateRoomForm').hidden;});
   $g('gamesCancelCreateButton').addEventListener('click',()=>$g('gamesCreateRoomForm').hidden=true);
@@ -138,7 +154,7 @@
     catch(error){notice(error.message,true);}
     finally{input.disabled=false;input.focus();}
   });
-  document.querySelectorAll('[data-games-home]').forEach(button=>button.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'})));
+  document.querySelectorAll('[data-games-home]').forEach(button=>button.addEventListener('click',()=>{if(typeof showScreen==='function')showScreen('homeScreen');}));
 
   async function loadRooms(){
     if(!requireAccount())return;
@@ -164,7 +180,7 @@
 
   async function enterRoom(roomId){
     if(!requireAccount())return;
-    currentRoom=roomId;$g('gamesDirectory').hidden=true;$g('chessRoomView').hidden=false;notice('');
+    currentRoom=roomId;$g('chessDirectory').hidden=true;$g('chessRoomView').hidden=false;notice('');
     $g('gamesScreen').scrollIntoView({behavior:'smooth',block:'start'});
     await chessLibraryReady;
     await refreshRoom();
@@ -177,7 +193,7 @@
   }
   function leaveRoomView(){
     if(roomChannel)db.removeChannel(roomChannel);roomChannel=null;currentRoom=null;roomState=null;chess=null;selectedSquare=null;legalTargets=[];
-    $g('chessRoomView').hidden=true;$g('gamesDirectory').hidden=false;notice('');
+    $g('chessRoomView').hidden=true;$g('chessDirectory').hidden=false;notice('');
   }
   async function refreshRoom(){
     if(!currentRoom)return;
