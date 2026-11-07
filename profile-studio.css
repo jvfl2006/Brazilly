@@ -735,3 +735,64 @@ body.profile-photo-viewer-open{overflow:hidden}
 .profile-custom-shell .world-identity-copy{font-family:var(--profile-font-family, Nunito, sans-serif)}
 .profile-world-editor-look .profile-font-control{grid-column:1/-1;display:flex;flex-direction:column;gap:7px}
 .profile-world-editor-look .profile-font-control small{font-size:11px;opacity:.72;line-height:1.5}
+
+/* Avatar returns to the upper-left corner, overlapping the profile card edge. */
+.profile-world-page .profile-world-profile-card{
+ position:absolute;overflow:visible;
+}
+.profile-world-page .profile-world-profile-card .profile-world-card-heading{
+ position:relative;
+ display:grid;
+ grid-template-columns:minmax(0,1fr) minmax(190px,.8fr);
+ align-items:center;
+ min-height:154px;
+ padding:20px 30px 20px 190px;
+ gap:24px;
+ border-radius:24px 24px 0 0;
+}
+.profile-world-page .profile-world-profile-card .profile-world-header-avatar{
+ position:absolute;
+ top:-43px;
+ left:30px;
+ z-index:5;
+ width:clamp(126px,9vw,150px);
+ height:clamp(126px,9vw,150px);
+ flex:0 0 auto;
+ border:6px solid rgba(250,244,255,.98);
+ border-radius:50%;
+ object-fit:cover;
+ object-position:center;
+ background-color:#30224d;
+ box-shadow:0 0 0 7px rgba(150,95,230,.28),0 15px 38px rgba(8,5,24,.48);
+}
+.profile-world-page .profile-world-profile-card .profile-world-card-intro{
+ align-self:center;
+ max-width:440px;
+}
+.profile-world-page .profile-world-profile-card .profile-world-identity{
+ align-self:center;
+ justify-self:end;
+ text-align:right;
+}
+.profile-world-page .profile-world-profile-tabs{
+ padding-left:28px;
+}
+@media(max-width:760px){
+ .profile-world-page .profile-world-profile-card .profile-world-card-heading{
+  grid-template-columns:minmax(0,1fr);
+  min-height:154px;
+  padding:16px 16px 16px 116px;
+  gap:8px;
+ }
+ .profile-world-page .profile-world-profile-card .profile-world-header-avatar{
+  top:-30px;left:16px;width:88px;height:88px;flex-basis:88px;border-width:4px;
+  box-shadow:0 0 0 5px rgba(150,95,230,.25),0 10px 24px rgba(8,5,24,.42);
+ }
+ .profile-world-page .profile-world-profile-card .profile-world-card-intro{display:block}
+ .profile-world-page .profile-world-profile-card .profile-world-card-subtitle{font-size:11px}
+ .profile-world-page .profile-world-profile-card .profile-world-identity{
+  justify-self:start;text-align:left;
+ }
+ .profile-world-page .profile-world-profile-card .world-identity-copy{font-size:18px}
+ .profile-world-page .profile-world-profile-tabs{padding-left:12px}
+}
