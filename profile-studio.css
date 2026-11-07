@@ -446,7 +446,7 @@
 }
 .profile-world-page .profile-world-profile-card .profile-world-avatar{width:66px;height:66px;flex-basis:66px;border-radius:19px}
 .profile-world-page .profile-world-profile-card .world-identity-copy{font-size:clamp(17px,2vw,23px)}
-.profile-world-profile-tabs{display:flex;align-items:center;gap:7px;padding:11px 24px;border-bottom:1px solid rgba(235,220,255,.12);overflow-x:auto;scrollbar-width:none};padding-left:clamp(190px,14vw,245px)
+.profile-world-profile-tabs{display:flex;align-items:center;gap:7px;padding:11px 24px;border-bottom:1px solid rgba(235,220,255,.12);overflow-x:auto;scrollbar-width:none;padding-left:clamp(190px,14vw,245px)
 .profile-world-profile-tabs::-webkit-scrollbar{display:none}
 .profile-world-tab{flex:0 0 auto;padding:9px 16px;border:1px solid transparent;border-radius:999px;background:transparent;color:#d5cbe8;font:inherit;font-size:12px;font-weight:750;cursor:pointer;transition:background .18s,border-color .18s,color .18s}
 .profile-world-tab:hover{background:rgba(255,255,255,.08);color:#fff}
