@@ -2,14 +2,14 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const bucket='profile-scene-library';
-const allowed=new Set(['image/gif','image/webp','video/mp4','video/webm']);
+const allowed=new Set(['image/gif','image/webp','image/png','image/jpeg','image/avif','video/mp4','video/webm']);
 const maxBytes=30*1024*1024;
 let previewUrl=null;
 
 function isAdmin(){return Boolean(currentUser&&isModerator&&db);}
 function status(message){const node=$('adminSceneUploadStatus');if(node)node.textContent=message||'';}
 function mediaUrl(path){return db.storage.from(bucket).getPublicUrl(path).data.publicUrl;}
-function extFor(file){return file.type==='image/gif'?'gif':file.type==='image/webp'?'webp':file.type==='video/mp4'?'mp4':'webm';}
+function extFor(file){return ({'image/gif':'gif','image/webp':'webp','image/png':'png','image/jpeg':'jpg','image/avif':'avif','video/mp4':'mp4','video/webm':'webm'})[file.type];}
 function showPreview(file){
  const root=$('adminSceneUploadPreview');if(!root)return;
  if(previewUrl)URL.revokeObjectURL(previewUrl);

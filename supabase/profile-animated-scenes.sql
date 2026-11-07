@@ -1,5 +1,5 @@
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('profile-scenes','profile-scenes',false,31457280,array['image/gif','image/webp','video/mp4','video/webm'])
+values ('profile-scenes','profile-scenes',false,31457280,array['image/gif','image/webp','image/png','image/jpeg','image/avif','video/mp4','video/webm'])
 on conflict (id) do update set public=false,file_size_limit=excluded.file_size_limit,allowed_mime_types=excluded.allowed_mime_types;
 
 drop policy if exists "profile_scenes_upload_own" on storage.objects;
