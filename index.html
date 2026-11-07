@@ -42,7 +42,6 @@
       <button type="button" data-open="randomChatScreen"><span class="shortcut-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><strong>Chat aleatório</strong><small>Converse agora</small></button>
       <button type="button" data-open="communitiesScreen"><span class="shortcut-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.4 2.4-5.5 6-5.5s6 2.1 6 5.5M15 15c3.6-.3 6 1.5 6 4.5"/></svg></span><strong>Comunidades</strong><small>Encontre seus grupos</small></button>
       <button type="button" data-open="profileScreen"><span class="shortcut-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.6-4.2 3.3-6.3 8-6.3s7.4 2.1 8 6.3"/></svg></span><strong>Meu perfil</strong><small>Veja como aparece</small></button>
-      <button type="button" data-open="feedScreen"><span class="shortcut-icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span><strong>Publicações</strong><small>Veja o feed da comunidade</small></button>
     </div>
     
   </section>
@@ -87,21 +86,12 @@
       <button type="button" class="button button-primary button-large streaming-entry-button" id="streamingExploreButton">Conhecer o Cinema <span>→</span></button>
     </div>
   </section>
-</section>
-<section id="feedScreen" class="screen inner-screen feed-screen" aria-label="Publicações">
-  <div class="feed-page-container">
-    <header class="inner-header">
-      <button class="back-button" data-screen="homeScreen" aria-label="Voltar ao início">←</button>
-      <div><h2>Publicações</h2><span class="status">Feed da comunidade Brazilly</span></div>
-    </header>
-    <div class="feed-page-intro">
-      <span class="section-kicker">SEU FEED</span>
-      <h1>Momentos compartilhados pela comunidade.</h1>
-      <p>Fotos, vídeos, ideias e conversas em um só lugar.</p>
-    </div>
-    <section id="homePostsSection" class="home-posts-section" aria-label="Publicações da comunidade">
-      <div class="home-posts-heading">
-        <div><span class="section-kicker">SEU FEED</span><h2>O que está acontecendo?</h2><p>Compartilhe fotos, vídeos e momentos com a comunidade.</p></div>
+
+  <section id="homeReelsSection" class="home-reels-section" aria-label="Brazilly Reels">
+    <div class="reels-section-intro"><span class="section-kicker">CONTINUE EXPLORANDO</span><h2>Brazilly Reels</h2><p>Publicações da comunidade, em uma área só delas.</p></div>
+    <section id="homePostsSection" class="home-posts-section reels-section" aria-label="Publicações da comunidade">
+      <div class="home-posts-heading reels-heading">
+        <div><span class="section-kicker">BRAZILLY REELS</span><h2>O que a comunidade está compartilhando</h2><p>Role aqui para descobrir novas publicações.</p></div>
         <button type="button" id="openPostComposer" class="button button-primary">＋ Nova publicação</button>
       </div>
       <form id="postComposer" class="post-composer" hidden>
@@ -115,9 +105,9 @@
         <div class="post-composer-footer"><small>Publicação visível para pessoas conectadas ao Brazilly. Controles de audiência serão adicionados depois.</small><button type="submit" id="publishPostButton" class="button button-primary">Publicar</button></div>
         <p id="postComposerStatus" class="field-note" aria-live="polite"></p>
       </form>
-      <div id="homePostsFeed" class="home-posts-feed"><p class="field-note">Carregando publicações...</p></div>
+      <div id="homePostsFeed" class="home-posts-feed reels-feed" tabindex="0" aria-label="Feed de publicações com rolagem independente"><p class="field-note">Carregando publicações...</p><div id="postsFeedSentinel" class="posts-feed-sentinel" aria-hidden="true"></div>
     </section>
-  </div>
+  </section>
 </section>
 <section id="gamesScreen" class="screen inner-screen games-screen" aria-label="Jogos"></section>
 <section id="streamingScreen" class="screen inner-screen streaming-screen" aria-label="Brazilly Cinema"><div class="streaming-page-container"><header class="inner-header"><button class="back-button" data-screen="homeScreen" aria-label="Voltar ao início">←</button><div><h2>Brazilly Cinema</h2><span class="status">Streaming social · Em desenvolvimento</span></div></header><div class="streaming-page-hero"><span class="streaming-page-icon" aria-hidden="true">▶</span><span class="streaming-coming-soon">EM BREVE</span><span class="section-kicker">UMA EXPERIÊNCIA PARA COMPARTILHAR</span><h1>Filmes são melhores quando ninguém precisa assistir sozinho.</h1><p>A ideia é criar salas virtuais para reunir amigos, assistir juntos e conversar durante a sessão, mesmo cada um estando em um lugar diferente.</p><div class="streaming-page-features"><article><span>▣</span><strong>Salas compartilhadas</strong><small>Reúna amigos em uma mesma sessão.</small></article><article><span>▤</span><strong>Compartilhamento de tela</strong><small>Assista ao conteúdo que o grupo escolher, respeitando os direitos e as regras da plataforma de origem.</small></article><article><span>☏</span><strong>Chat e reações</strong><small>Comente, ria e reaja sem sair da sala.</small></article></div><p class="streaming-page-note">Esta página é uma prévia. As salas e a transmissão ainda não estão disponíveis, e não há uma data de lançamento definida.</p><button type="button" class="button button-outline button-large" data-screen="homeScreen">Voltar ao Brazilly</button></div></div></section>
