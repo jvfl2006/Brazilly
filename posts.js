@@ -3,7 +3,7 @@
 const $p = id => document.getElementById(id);
 const FILTERS = {none:'',warm:'sepia(.18) saturate(1.12) contrast(1.03)',mono:'grayscale(1)',vivid:'saturate(1.45) contrast(1.08)',cool:'saturate(.88) hue-rotate(12deg) contrast(1.04)'};
 const MAX_FILES=10, IMAGE_LIMIT=15*1024*1024, VIDEO_LIMIT=50*1024*1024;
-let selectedFiles=[], previewUrls=[], feedLoading=false, editingPost=null, editorItems=[], editorOriginalMedia=[], studioReady=null;
+let selectedFiles=[], previewUrls=[], feedLoading=false, feedCursor=null, feedHasMore=true, editingPost=null, editorItems=[], editorOriginalMedia=[], studioReady=null;
 function postNotice(message,error=false){const status=$p('postComposerStatus');if(status){status.textContent=message;status.classList.toggle('is-error',error);}else alert(message);}
 function clearPreviews(){previewUrls.forEach(url=>URL.revokeObjectURL(url));previewUrls=[];}
 function applyFilter(element,name){element.style.filter=FILTERS[name]||'';}
@@ -41,27 +41,21 @@ function openComposer(){if(!currentUser){openModal('loginModal');return;}const f
 function closeComposer(){const form=$p('postComposer');form.hidden=true;form.reset();selectedFiles=[];renderPreview();postNotice('');}
 function formatPostDate(value){return new Date(value).toLocaleString('pt-BR',{dateStyle:'medium',timeStyle:'short'});}
 function makeButton(label,className,handler){const b=document.createElement('button');b.type='button';b.className=className;b.textContent=label;b.addEventListener('click',handler);return b;}
-async function loadPosts(){
- const root=$p('homePostsFeed');if(!root||!currentUser||feedLoading)return;feedLoading=true;root.replaceChildren();const loading=document.createElement('p');loading.className='field-note';loading.textContent='Carregando publicações...';root.append(loading);
+async function loadPosts(append=false){
+ const root=$p('homePostsFeed');if(!root||!currentUser||feedLoading||(append&&!feedHasMore))return;feedLoading=true;
+ if(!append){feedCursor=null;feedHasMore=true;root.replaceChildren();}
+ const loading=document.createElement('p');loading.className='field-note posts-loading';loading.textContent='Carregando publicações...';root.append(loading);
  try{
-  const {data:posts,error}=await db.rpc('get_home_posts',{p_limit:40});if(error)throw error;
-  if(!posts?.length){const empty=document.createElement('div');empty.className='post-feed-empty';empty.innerHTML='<strong>Seu feed ainda está vazio.</strong><span>Publique a primeira foto ou vídeo e dê início à movimentação por aqui.</span>';empty.append(makeButton('＋ Fazer a primeira publicação','button button-primary',openComposer));root.replaceChildren(empty);return;}
-  const ids=posts.map(p=>p.id),users=[...new Set(posts.map(p=>p.user_id))];
-  const [mediaResult,likesResult,commentsResult]=await Promise.all([
-   db.from('post_media').select('id,post_id,storage_path,media_type,mime_type,position').in('post_id',ids).order('position'),
-   db.from('post_likes').select('post_id,user_id').in('post_id',ids),
-   db.from('post_comments').select('post_id').in('post_id',ids)
-  ]);
+  const {data:posts,error}=await db.rpc('get_home_posts',{p_limit:10,p_before_created_at:append?feedCursor?.created_at:null,p_before_id:append?feedCursor?.id:null});if(error)throw error;loading.remove();
+  if(!posts?.length){feedHasMore=false;if(!append){const empty=document.createElement('div');empty.className='post-feed-empty';empty.innerHTML='<strong>Seu feed ainda está vazio.</strong><span>Publique a primeira foto ou vídeo e dê início à movimentação por aqui.</span>';empty.append(makeButton('＋ Fazer a primeira publicação','button button-primary',openComposer));root.append(empty);}return;}
+  feedCursor={created_at:posts[posts.length-1].created_at,id:posts[posts.length-1].id};feedHasMore=posts.length===10;
+  const ids=posts.map(p=>p.id);const [mediaResult,likesResult,commentsResult]=await Promise.all([db.from('post_media').select('id,post_id,storage_path,media_type,mime_type,position').in('post_id',ids).order('position'),db.from('post_likes').select('post_id,user_id').in('post_id',ids),db.from('post_comments').select('post_id').in('post_id',ids)]);
   for(const r of [mediaResult,likesResult,commentsResult])if(r.error)throw r.error;
   const mediaRows=await Promise.all((mediaResult.data||[]).map(async item=>{const {data,error}=await db.storage.from('post-media').createSignedUrl(item.storage_path,3600);if(error)throw error;return {...item,signedUrl:data.signedUrl};}));
-  const mediaByPost=new Map(),likesByPost=new Map(),commentsByPost=new Map();
-  for(const m of mediaRows){if(!mediaByPost.has(m.post_id))mediaByPost.set(m.post_id,[]);mediaByPost.get(m.post_id).push(m);}
-  for(const l of likesResult.data||[]){likesByPost.set(l.post_id,(likesByPost.get(l.post_id)||[]).concat(l));}
-  for(const c of commentsResult.data||[])commentsByPost.set(c.post_id,(commentsByPost.get(c.post_id)||0)+1);
-  const fragment=document.createDocumentFragment();
-  for(const post of posts)fragment.append(renderPost(post,post.display_name||'Pessoa do Brazilly',mediaByPost.get(post.id)||[],likesByPost.get(post.id)||[],commentsByPost.get(post.id)||0));
-  root.replaceChildren(fragment);
- }catch(error){console.error('Falha ao carregar feed:',error);root.replaceChildren();const message=document.createElement('p');message.className='field-note';message.textContent='Não foi possível carregar o feed: '+error.message;root.append(message);}
+  const mediaByPost=new Map(),likesByPost=new Map(),commentsByPost=new Map();for(const m of mediaRows){if(!mediaByPost.has(m.post_id))mediaByPost.set(m.post_id,[]);mediaByPost.get(m.post_id).push(m);}for(const l of likesResult.data||[])likesByPost.set(l.post_id,(likesByPost.get(l.post_id)||[]).concat(l));for(const c of commentsResult.data||[])commentsByPost.set(c.post_id,(commentsByPost.get(c.post_id)||0)+1);
+  const fragment=document.createDocumentFragment();for(const post of posts)fragment.append(renderPost(post,post.display_name||'Pessoa do Brazilly',mediaByPost.get(post.id)||[],likesByPost.get(post.id)||[],commentsByPost.get(post.id)||0));root.append(fragment);
+  if(!feedHasMore){const end=document.createElement('p');end.className='posts-feed-end';end.textContent='Você chegou ao fim das publicações por enquanto.';root.append(end);}
+ }catch(error){console.error('Falha ao carregar feed:',error);loading.remove();const message=document.createElement('p');message.className='field-note';message.textContent='Não foi possível carregar o feed: '+error.message;root.append(message);}
  finally{feedLoading=false;}
 }
 async function openPostEditor(post,media){
@@ -179,7 +173,7 @@ function initPosts(){
  $p('postEditorCaption')?.addEventListener('input',event=>$p('postEditorCaptionCount').textContent=String(event.target.value.length));
  document.querySelectorAll('[data-editor-filter]').forEach(button=>button.addEventListener('click',()=>setEditorFilter(button.dataset.editorFilter)));
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$p('postEditorModal').hidden)closePostEditor();});
- document.addEventListener('brazilly:screen-changed',event=>{if(event.detail==='feedScreen'&&currentUser)setTimeout(loadPosts,100);});
+ $p('homePostsFeed')?.addEventListener('scroll',()=>{const root=$p('homePostsFeed');if(root.scrollTop+root.clientHeight>=root.scrollHeight-500)loadPosts(true);},{passive:true});
  db.auth.onAuthStateChange((_event,session)=>{if(session){setTimeout(loadPosts,350);}else{$p('homePostsFeed')?.replaceChildren();closeComposer();}});
  db.auth.getSession().then(({data})=>{if(data.session)setTimeout(loadPosts,250);});
 }
