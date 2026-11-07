@@ -216,7 +216,8 @@ begin
       end as score
     from public.profiles pr
     where pr.user_id<>v_uid
-      and extract(year from age(current_date,pr.birth_date)) between p_min_age and p_max_age
+      and ((pr.is_private and not public.can_view_profile(pr.user_id))
+        or extract(year from age(current_date,pr.birth_date)) between p_min_age and p_max_age)
       and (not p_photos_only or exists(select 1 from public.profile_photos pp where pp.user_id=pr.user_id and (not pr.is_private or public.can_view_profile(pr.user_id))))
       and not exists(select 1 from public.user_blocks b where
         (b.blocker_id=v_uid and b.blocked_id=pr.user_id) or
