@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const el = id => document.getElementById(id);
+  const el = id => document.getElementById(id);\n  if (!db) return;
   let randomSessionId = null, randomPartnerId = null, randomChannel = null, randomPoll = null, randomSessionWatch = null;
   let communityId = null, communityChannel = null;
   const setText=(id,value)=>{const node=el(id);if(node)node.textContent=value;};
@@ -42,7 +42,7 @@
     stopRandomWatch();randomSessionId=match.session_id;randomPartnerId=match.partner_id;
     el('findRandomButton').disabled=false;el('findRandomButton').textContent='Próxima pessoa';
     el('leaveRandomButton').hidden=false;el('randomMessageInput').disabled=false;el('randomMessageForm').querySelector('button').disabled=false;
-    setText('randomStatus','Conectado com '+(match.partner_name||'alguém')+' · conversa anônima');
+    setText('randomStatus','Conectado com alguém · conversa anônima');
     await loadRandomMessages();el('randomMessageInput').focus();
   }
   async function leaveRandomChat(){
