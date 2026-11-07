@@ -14,9 +14,8 @@ const defaultItems = () => [
   {id:'rug-main',type:'rug',x:-.15,z:1.25,rotation:0}
 ];
 const defaults = {
-  theme:'lofi',accent:'#d8a879',decor:'cozy',
+  theme:'lofi',accent:'#d8a879',
   room:{time:'sunset',items:defaultItems()},
-  widgets:['quote','music','games','setup','countdown','links','interests','gallery','about'],
   quote:'',music:'',musicUrl:'',games:'',setup:'',countdownTitle:'',countdownDate:'',links:[]
 };
 const themeNames = ['lofi','pixel','anime','scrapbook','aurora','midnight','sunset','forest','rose'];
@@ -46,7 +45,7 @@ function normalize(raw) {
     }))
   };
   if(!value.room.items.length)value.room.items=defaultItems();
-  value.widgets = Array.isArray(value.widgets) ? value.widgets.filter(x => defaults.widgets.includes(x)) : [...defaults.widgets];
+  delete value.mascot;delete value.cover;delete value.decor;delete value.widgets;
   value.quote = String(value.quote||'').slice(0,180);
   value.music = String(value.music||'').slice(0,100);
   value.musicUrl = String(value.musicUrl||'').slice(0,500);
