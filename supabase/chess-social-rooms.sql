@@ -62,13 +62,13 @@ revoke all on function public.is_chess_room_member(uuid) from public,anon;
 grant execute on function public.is_chess_room_member(uuid) to authenticated;
 drop policy if exists chess_members_read_room on public.chess_room_members;
 create policy chess_members_read_room on public.chess_room_members for select to authenticated
- using ((select public.is_chess_room_member(room_id)));
+ using ((select private.is_chess_room_member(room_id)));
 drop policy if exists chess_games_read_room_members on public.chess_games;
 create policy chess_games_read_room_members on public.chess_games for select to authenticated
- using ((select public.is_chess_room_member(room_id)));
+ using ((select private.is_chess_room_member(room_id)));
 drop policy if exists chess_messages_read_room_members on public.chess_room_messages;
 create policy chess_messages_read_room_members on public.chess_room_messages for select to authenticated
- using ((select public.is_chess_room_member(room_id)));
+ using ((select private.is_chess_room_member(room_id)));
 revoke insert,update,delete on public.chess_rooms,public.chess_room_members,public.chess_games,public.chess_room_messages from anon,authenticated;
 do $chess_realtime$
 begin
