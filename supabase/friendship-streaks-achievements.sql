@@ -75,3 +75,19 @@ begin
 end; $$;
 revoke all on function public.get_my_friendship_streaks() from public,anon;
 grant execute on function public.get_my_friendship_streaks() to authenticated;
+
+-- A streak is shown as active only when the last interaction was today or yesterday.
+create or replace function public.get_my_friendship_streaks()
+returns table(friend_id uuid,friend_name text,current_streak integer,longest_streak integer,last_interaction_date date)
+language plpgsql stable security definer set search_path=public
+as $$
+begin
+ if auth.uid() is null then raise exception 'Entre na sua conta.'; end if;
+ return query select case when s.user_one=auth.uid() then s.user_two else s.user_one end,p.display_name,
+ case when s.last_interaction_date>=current_date-1 then s.current_streak else 0 end,
+ s.longest_streak,s.last_interaction_date
+ from public.friendship_streaks s join public.profiles p on p.user_id=case when s.user_one=auth.uid() then s.user_two else s.user_one end
+ where auth.uid() in(s.user_one,s.user_two) order by case when s.last_interaction_date>=current_date-1 then s.current_streak else 0 end desc,s.updated_at desc limit 30;
+end; $$;
+revoke all on function public.get_my_friendship_streaks() from public,anon;
+grant execute on function public.get_my_friendship_streaks() to authenticated;
