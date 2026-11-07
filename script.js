@@ -358,7 +358,7 @@ async function uploadProfilePhotos(userId, photoItems){
 }
 async function syncProfileToSupabase(p){
   if(!db||!currentUser)throw new Error('Entre na sua conta antes de sincronizar o perfil.');
-  const row={user_id:currentUser.id,display_name:p.name,birth_date:p.birthDate,gender:p.gender||null,sexuality:p.sexuality||null,height_cm:p.height||null,education:p.education||null,profession:p.profession||null,religion:p.religion||null,relationship_status:p.relationshipStatus||null,personality_mbti:p.personality||null,pets:p.pets||null,children:p.children||null,bio:p.bio||null,drink_frequency:p.drink||null,tobacco_frequency:p.smoke||null,exercise_frequency:p.exercise||null,intentions:p.intentions||[],city:p.city||null,show_age:p.showAge,show_city:p.showCity,private_profile:p.privateProfile};
+  const row={user_id:currentUser.id,display_name:p.name,birth_date:p.birthDate,gender:p.gender||null,sexuality:p.sexuality||null,height_cm:p.height||null,education:p.education||null,profession:p.profession||null,religion:p.religion||null,relationship_status:p.relationshipStatus||null,personality_mbti:p.personality||null,pets:p.pets||null,children:p.children||null,bio:p.bio||null,drink_frequency:p.drink||null,tobacco_frequency:p.smoke||null,exercise_frequency:p.exercise||null,intentions:p.intentions||[],city:p.city||null,show_age:p.showAge,show_city:p.showCity,private_profile:p.privateProfile,activity_status:currentProfile?.activityStatus||'available',activity_note:currentProfile?.activityNote||null};
   const {error:profileError}=await db.from('profiles').upsert(row,{onConflict:'user_id'});if(profileError)throw profileError;
   const {error:interestDeleteError}=await db.from('user_interests').delete().eq('user_id',currentUser.id);if(interestDeleteError)throw interestDeleteError;
   if(p.interests?.length){const interestRows=p.interests.map(name=>({user_id:currentUser.id,category:categoryForInterest(name),interest_name:name}));const {error:interestError}=await db.from('user_interests').insert(interestRows);if(interestError)throw interestError;}
@@ -366,7 +366,7 @@ async function syncProfileToSupabase(p){
   const settings=readSettings();
   const {error:settingsError}=await db.from('profiles').update({last_seen_visible:settings.lastSeen,online_visible:settings.online,read_receipts:settings.readReceipt,media_download:settings.mediaDownload}).eq('user_id',currentUser.id);
   if(settingsError)throw settingsError;
-  currentProfile={...p,email:currentUser.email};
+  currentProfile={...p,email:currentUser.email,activityStatus:row.activity_status,activityNote:row.activity_note||''};
   return currentProfile;
 }
 async function saveProfile(){
