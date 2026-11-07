@@ -595,15 +595,18 @@ function subscribeToConversation(conversationId) {
   if (activeConversationChannel) db.removeChannel(activeConversationChannel);
   activeConversationChannel = db.channel('messages-' + conversationId)
     .on('postgres_changes', {event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.' + conversationId}, payload => {
+      if (activeConversationId !== conversationId) return;
       addMessageToView(payload.new);
       if (payload.new.sender_id !== currentUser?.id) markConversationMessageRead(payload.new.id);
     })
     .on('postgres_changes', {event:'UPDATE',schema:'public',table:'messages',filter:'conversation_id=eq.' + conversationId}, payload => {
+      if (activeConversationId !== conversationId) return;
       const ticks=$('conversationMessages').querySelector('[data-message-id="'+payload.new.id+'"] .message-read-ticks');
       if(ticks){ticks.classList.toggle('is-read',Boolean(payload.new.read_at));ticks.title=payload.new.read_at?'Lida':'Enviada';}
     }).subscribe();
 }
 async function openConversation(conversationId, otherName, otherUserId) {
+  if (activeConversationChannel) { db.removeChannel(activeConversationChannel); activeConversationChannel = null; }
   activeConversationId = conversationId;
   activeConversationOtherUserId = otherUserId || null;
   $('conversationName').dataset.originalName=otherName||'Conversa';
