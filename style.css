@@ -17,3 +17,18 @@
 #openChatProfile{margin-left:auto;white-space:nowrap}
 .conversation-header{display:flex;align-items:center;gap:12px}
 @media(max-width:560px){.social-profile-actions .button{flex:1;min-width:130px}.conversation-header{padding:12px;gap:7px}#openChatProfile{font-size:10px;padding:7px 9px}}
+
+
+/* Social profile additions */
+.social-profile-fields{margin:16px 0}
+.social-private-row{margin:14px 0;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);font-size:12px;color:var(--muted)}
+.social-private-row input{margin-right:8px;accent-color:var(--accent)}
+.personality-test-link{display:inline-block;margin:5px 0 12px;color:var(--accent2);font-size:12px;font-weight:700}
+.custom-interest-row{display:flex;gap:9px;margin-top:12px}
+.custom-interest-row input{flex:1;min-width:0}
+.incoming-requests-section{margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
+.incoming-requests-section h3{font-size:13px;margin:0 0 10px}
+.incoming-friend-requests{display:grid;gap:9px}
+.incoming-request-item{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}
+.incoming-request-item strong{flex:1 1 100%;font-size:12px}
+.incoming-request-item .button{padding:7px 10px;font-size:11px}
