@@ -593,8 +593,9 @@ async function renderPublic(profile){
     const previous=target.querySelector('.profile-public-customization');
     if(previous){cleanupByRoot.get(previous)?.();previous.remove();}
     const wrap=element('section','profile-public-customization');
+    target.prepend(wrap);
     await render(wrap,profile,settings,false);
-    if(activePublicId===profile.user_id)target.prepend(wrap);
+    if(activePublicId!==profile.user_id){cleanupByRoot.get(wrap)?.();wrap.remove();}
   }catch(error){console.warn('Erro ao carregar o ambiente público:',error);}
 }
 function openEditor(){
