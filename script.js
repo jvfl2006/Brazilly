@@ -574,6 +574,7 @@ async function loadConversationMessages(conversationId) {
   const {data,error} = await db.from('messages').select('id,conversation_id,sender_id,body,created_at,read_at,message_type,media_path,media_mime,media_size,media_blurred')
     .eq('conversation_id', conversationId).order('created_at', {ascending:true}).limit(300);
   if (error) throw error;
+  if (conversationId !== activeConversationId) return;
   $('conversationMessages').innerHTML = '';
   messageCache.clear();
   (data || []).forEach(addMessageToView);
@@ -594,30 +595,39 @@ function subscribeToConversation(conversationId) {
   if (activeConversationChannel) db.removeChannel(activeConversationChannel);
   activeConversationChannel = db.channel('messages-' + conversationId)
     .on('postgres_changes', {event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.' + conversationId}, payload => {
+      if (activeConversationId !== conversationId) return;
       addMessageToView(payload.new);
       if (payload.new.sender_id !== currentUser?.id) markConversationMessageRead(payload.new.id);
     })
     .on('postgres_changes', {event:'UPDATE',schema:'public',table:'messages',filter:'conversation_id=eq.' + conversationId}, payload => {
+      if (activeConversationId !== conversationId) return;
       const ticks=$('conversationMessages').querySelector('[data-message-id="'+payload.new.id+'"] .message-read-ticks');
       if(ticks){ticks.classList.toggle('is-read',Boolean(payload.new.read_at));ticks.title=payload.new.read_at?'Lida':'Enviada';}
     }).subscribe();
 }
 async function openConversation(conversationId, otherName, otherUserId) {
+  if (activeConversationChannel) { db.removeChannel(activeConversationChannel); activeConversationChannel = null; }
   activeConversationId = conversationId;
   activeConversationOtherUserId = otherUserId || null;
   $('conversationName').dataset.originalName=otherName||'Conversa';
   $('conversationName').textContent = otherName || 'Conversa';
   $('conversationNickname').value='';
   $('conversationWallpaper').value='default';
-  const {data:settings,error:settingsError}=await db.from('conversation_user_settings').select('nickname,wallpaper').eq('user_id',currentUser.id).eq('conversation_id',conversationId).maybeSingle();
+  $('conversationMessages').innerHTML='<p class="field-note">Carregando mensagens...</p>';
+  $('conversationStatus').textContent = 'Conversa privada · mensagens em tempo real';
+  $('conversationPlaceholder').hidden = true;
+  $('activeConversation').hidden = false;
+  const [settingsResult] = await Promise.all([
+    db.from('conversation_user_settings').select('nickname,wallpaper')
+      .eq('user_id',currentUser.id).eq('conversation_id',conversationId).maybeSingle(),
+    loadConversationMessages(conversationId)
+  ]);
+  if (conversationId !== activeConversationId) return;
+  const {data:settings,error:settingsError}=settingsResult;
   if(settingsError)console.warn('Não foi possível carregar personalização da conversa:',settingsError.message);
   if(settings){$('conversationNickname').value=settings.nickname||'';$('conversationWallpaper').value=settings.wallpaper||'default';}
   $('conversationName').textContent=settings?.nickname||otherName||'Conversa';
   applyConversationWallpaper(settings?.wallpaper||'default');
-  $('conversationStatus').textContent = 'Conversa privada · mensagens em tempo real';
-  $('conversationPlaceholder').hidden = true;
-  $('activeConversation').hidden = false;
-  await loadConversationMessages(conversationId);
   subscribeToConversation(conversationId);
   $('directMessageInput').focus();
 }
@@ -659,30 +669,38 @@ async function renderFriendRequests(){
     actions.append(accept,decline);item.append(name,actions);root.append(item);
   }
 }
+let conversationListLoadVersion = 0;
 async function renderConversationList() {
   const root = $('conversationList');
   if (!root) return;
-  root.innerHTML = '';
+  const version = ++conversationListLoadVersion;
   if (!currentUser) { root.textContent = 'Entre na sua conta para ver suas conversas.'; return; }
-  await renderFriendRequests();
-  const {data:rows,error} = await db.rpc('list_my_conversations');
+  root.innerHTML = '<p class="field-note">Carregando conversas...</p>';
+  const [requestsResult, conversationsResult] = await Promise.all([
+    renderFriendRequests(),
+    db.rpc('list_my_conversations_fast')
+  ]);
+  if (version !== conversationListLoadVersion) return;
+  const {data:rows,error} = conversationsResult;
   if (error) { root.textContent = 'Não foi possível carregar conversas: ' + error.message; return; }
   if (!rows?.length) { root.textContent = 'Você ainda não iniciou nenhuma conversa. Abra um perfil para mandar a primeira mensagem.'; return; }
-  const {data:customRows}=await db.from('conversation_user_settings').select('conversation_id,nickname').eq('user_id',currentUser.id).in('conversation_id',rows.map(row=>row.conversation_id));
-  const nicknameByConversation=new Map((customRows||[]).map(item=>[item.conversation_id,item.nickname]));
+  const fragment = document.createDocumentFragment();
   for (const row of rows) {
-    const {data:lastRows} = await db.from('messages').select('body,created_at')
-      .eq('conversation_id',row.conversation_id).order('created_at',{ascending:false}).limit(1);
     const item = document.createElement('button');
     item.type = 'button';
     item.className = 'conversation-list-item' + (row.conversation_id === activeConversationId ? ' active' : '');
-    const name = document.createElement('strong'); name.textContent = nicknameByConversation.get(row.conversation_id) || row.display_name || 'Usuário';
-    const preview = document.createElement('span'); preview.textContent = lastRows?.[0]?.body || 'Conversa iniciada';
-    const date = document.createElement('small'); date.textContent = lastRows?.[0]?.created_at ? new Date(lastRows[0].created_at).toLocaleDateString('pt-BR') : '';
+    const name = document.createElement('strong');
+    name.textContent = row.nickname || row.display_name || 'Usuário';
+    const preview = document.createElement('span');
+    preview.textContent = row.last_message_body || 'Conversa iniciada';
+    const date = document.createElement('small');
+    const lastActivity = row.last_message_created_at || row.updated_at;
+    date.textContent = lastActivity ? new Date(lastActivity).toLocaleDateString('pt-BR') : '';
     item.append(name,preview,date);
     item.addEventListener('click',()=>openConversation(row.conversation_id,row.display_name,row.other_user_id));
-    root.append(item);
+    fragment.append(item);
   }
+  root.replaceChildren(fragment);
 }
 
 function applyConversationWallpaper(value='default'){
