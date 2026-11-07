@@ -369,3 +369,26 @@ body.story-view-open{overflow:hidden}
 .composer-audio-status{display:block;margin:0;padding:0 14px 7px;font-size:10px}
 @keyframes composer-pulse{50%{opacity:.65}}
 @media(max-width:520px){.conversation-header{align-items:center}.conversation-header-actions .button{display:none}.direct-message-form{gap:4px;padding:9px 7px}.composer-icon-button,.composer-action-button{flex-basis:34px;width:34px;height:34px}.direct-message-form input{padding:11px 12px}}
+
+
+/* Mensagens: painel fixo com rolagem independente, como no WhatsApp Web */
+#messagesScreen.inner-screen.active{height:calc(100dvh - 70px);min-height:0;padding:14px 20px;overflow:hidden}
+#messagesScreen .messages-page{height:100%;min-height:0;display:flex;flex-direction:column}
+#messagesScreen .messages-page>.inner-header{flex:0 0 auto}
+#messagesScreen .messenger-layout{flex:1 1 auto;min-height:0;height:auto;grid-template-rows:minmax(0,1fr);overflow:hidden}
+#messagesScreen .conversation-sidebar{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#messagesScreen .conversation-list{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;align-content:start}
+#messagesScreen .conversation-sidebar>.friend-requests-section{flex:0 0 auto}
+#messagesScreen .conversation-panel{min-height:0;height:100%;overflow:hidden}
+#messagesScreen .active-conversation{min-height:0;height:100%;flex:1 1 auto;overflow:hidden}
+#messagesScreen .conversation-messages{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain;overflow-anchor:auto;scrollbar-gutter:stable}
+@media(max-width:720px){
+ #messagesScreen.inner-screen.active{height:calc(100dvh - 70px);min-height:0;padding:10px 12px}
+ #messagesScreen .messenger-layout{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(115px,26%) minmax(0,1fr);gap:8px;min-height:0;height:auto;overflow:hidden}
+ #messagesScreen .conversation-sidebar{max-height:none;min-height:0;padding:10px;border:1px solid var(--border);border-radius:12px}
+ #messagesScreen .conversation-sidebar h3{font-size:13px;padding:0 6px 6px}
+ #messagesScreen .conversation-list{min-height:0;overflow-y:auto}
+ #messagesScreen .conversation-panel{min-height:0;height:100%;border:1px solid var(--border);border-radius:12px}
+ #messagesScreen .active-conversation{min-height:0;height:100%}
+ #messagesScreen .conversation-messages{min-height:0;max-height:none}
+}
