@@ -73,7 +73,7 @@ renderInterestCategories(); renderSelectedInterests();
 
 $('addCustomInterest').addEventListener('click', () => {
   const input = $('customInterestInput');
-  const value = input.value.trim().replace(/\\s+/g, ' ');
+  const value = input.value.trim().replace(/\s+/g, ' ');
   if (!value) { input.focus(); return; }
   if (value.length > 50) { alert('O interesse deve ter no máximo 50 caracteres.'); return; }
   const duplicate = [...selectedInterests].some(x => x.toLocaleLowerCase('pt-BR') === value.toLocaleLowerCase('pt-BR'));
