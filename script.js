@@ -570,6 +570,7 @@ function openProfileDetails(p) {
   if (p.intentions?.length) { const h=document.createElement('h3');h.textContent='O que procura';root.append(h);const v=document.createElement('p');v.className='field-note';v.textContent=p.intentions.join(' · ');root.append(v); }
   if (p.interests?.length) { const h=document.createElement('h3');h.textContent='Interesses';root.append(h);const tags=document.createElement('div');tags.className='preview-tags';p.interests.forEach(name=>{const tag=document.createElement('span');tag.textContent=name;tags.append(tag);});root.append(tags); }
   openModal('profileDetailModal');
+  document.dispatchEvent(new CustomEvent('brazilly:profile-opened',{detail:p}));
   updateFriendRequestButton(p.user_id);
   $('favoriteProfileButton').textContent='☆ Favoritar';
   if(currentUser){
