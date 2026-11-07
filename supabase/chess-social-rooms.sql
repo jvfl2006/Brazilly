@@ -52,6 +52,7 @@ alter table public.chess_room_members enable row level security;
 alter table public.chess_games enable row level security;
 alter table public.chess_room_messages enable row level security;
 grant select on public.chess_room_members,public.chess_games,public.chess_room_messages to authenticated;
+revoke select on public.chess_rooms from anon,authenticated;
 create or replace function public.is_chess_room_member(p_room_id uuid)
 returns boolean language sql security definer set search_path = ''
 as $ select exists(select 1 from public.chess_room_members m where m.room_id=p_room_id and m.user_id=(select auth.uid())); $;
