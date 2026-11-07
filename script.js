@@ -376,6 +376,7 @@ function subscribeToConversation(conversationId) {
 async function openConversation(conversationId, otherName, otherUserId) {
   activeConversationId = conversationId;
   activeConversationOtherUserId = otherUserId || null;
+  $('conversationName').dataset.originalName=otherName||'Conversa';
   $('conversationName').textContent = otherName || 'Conversa';
   $('conversationNickname').value='';
   $('conversationWallpaper').value='default';
