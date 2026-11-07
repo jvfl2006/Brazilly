@@ -171,3 +171,12 @@ body.story-view-open{overflow:hidden}
  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='150' viewBox='0 0 180 150'%3E%3Cg fill='none' stroke='%23aab4c0' stroke-opacity='.075' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 24h25a7 7 0 0 1 7 7v13a7 7 0 0 1-7 7H31l-8 6v-6h-5a7 7 0 0 1-7-7V31a7 7 0 0 1 7-7z'/%3E%3Cpath d='M104 17l3 8 8 3-8 3-3 8-3-8-8-3 8-3z'/%3E%3Cpath d='M145 73c-8-10-23 1-12 12l12 11 12-11c11-11-4-22-12-12z'/%3E%3Ccircle cx='39' cy='111' r='13'/%3E%3Cpath d='M32 111h14M39 104v14M92 94c9-9 18 9 27 0M92 103c9-9 18 9 27 0'/%3E%3Cpath d='M151 128l4 4 8-10'/%3E%3C/g%3E%3C/svg%3E");
  background-size:180px 150px;
 }
+
+/* Stories: foto de perfil, aro de não visto/visto e atalho de publicação */
+.story-avatar{position:relative;overflow:visible;background-position:center;background-size:cover;background-repeat:no-repeat}
+.story-avatar.has-photo{color:transparent}
+.story-avatar.unread{border:3px solid #a48bff;box-shadow:0 0 0 2px #a48bff30}
+.story-avatar.seen{border:2px solid #727985;box-shadow:none}
+.story-add-badge{position:absolute;right:-3px;bottom:-3px;width:23px;height:23px;display:grid;place-items:center;border:2px solid var(--surface);border-radius:50%;background:#7656d6;color:#fff;font-size:17px;font-weight:800;line-height:1}
+.story-create .story-avatar{border:2px solid #8270d5;background-color:#272238}
+.story-create .story-avatar.has-photo{border:2px solid #8270d5}

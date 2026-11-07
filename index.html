@@ -10,7 +10,7 @@
   <a class="brand" href="#" data-screen="homeScreen" aria-label="Brazilly, página inicial"><span class="brand-mark">B</span><span>Brazilly</span></a>
   <nav class="header-nav" aria-label="Navegação principal">
     <a href="#como-funciona" class="nav-link" data-scroll="como-funciona">Como funciona</a>
-    <button class="nav-link" data-open="randomChatScreen">Chat aleatório</button><button class="nav-link" data-open="communitiesScreen">Comunidades</button><button class="nav-link" id="messagesButton">Mensagens</button><button class="nav-link" id="loginButton">Entrar</button>
+    <button class="nav-link" data-open="randomChatScreen">Chat aleatório</button><button class="nav-link" data-open="communitiesScreen">Comunidades</button><button class="nav-link" id="messagesButton">Mensagens <span id="headerUnreadBadge" class="unread-badge header-unread-badge" hidden>0</span></button><button class="nav-link" id="loginButton">Entrar</button>
     <button class="button button-small button-primary" id="signupButton">Criar perfil</button>
     <button class="icon-button" id="settingsButton" aria-label="Configurações" title="Configurações">⚙</button>
   </nav>
@@ -25,7 +25,26 @@
     <div class="hero-actions"><button class="button button-primary button-large" id="heroSignupButton">Criar conta grátis <span>↗</span></button><button class="button button-outline button-large" id="heroLoginButton">Já tenho uma conta · Entrar</button><button class="button button-outline button-large" id="heroDiscoverButton">Encontrar pessoas</button></div>
     <div class="hero-note"><span class="tiny-check">✓</span> Um espaço para conhecer pessoas, não para vender assinaturas.</div>
   </div><div class="hero-art" role="img" aria-label="Ilustração de pessoas conectadas"><div class="art-glow"></div><svg class="network-art" viewBox="0 0 620 470" xmlns="http://www.w3.org/2000/svg"><circle cx="310" cy="235" r="178" fill="#7563ed" opacity=".06"/><circle cx="310" cy="235" r="130" fill="none" stroke="#8c7aff" stroke-opacity=".2" stroke-dasharray="4 10"/><g stroke="#8875f5" stroke-opacity=".55" stroke-width="2"><path d="M310 235 145 105 78 245 190 365 310 235 475 105 545 250 430 365 310 235" fill="none"/><path d="M145 105 310 70 475 105M78 245 310 410 545 250" fill="none"/></g><g fill="#a99aff"><circle cx="310" cy="235" r="9"/><circle cx="145" cy="105" r="6"/><circle cx="475" cy="105" r="6"/><circle cx="78" cy="245" r="6"/><circle cx="545" cy="250" r="6"/><circle cx="190" cy="365" r="6"/><circle cx="430" cy="365" r="6"/></g><g fill="#292443" stroke="#a99aff"><circle cx="310" cy="210" r="40"/><circle cx="145" cy="85" r="33"/><circle cx="475" cy="85" r="33"/><circle cx="78" cy="235" r="30"/><circle cx="545" cy="240" r="30"/></g><g fill="#a99aff"><circle cx="310" cy="198" r="12"/><circle cx="145" cy="76" r="10"/><circle cx="475" cy="76" r="10"/><circle cx="78" cy="227" r="9"/><circle cx="545" cy="232" r="9"/></g></svg><div class="floating-label label-one">✦ Novas conversas</div><div class="floating-label label-two">⌖ Perto de você</div></div></div>
-  <section class="stories-section" aria-label="Stories">
+  <section id="homeMemberPanel" class="home-member-panel" hidden>
+    <div class="home-member-heading"><div><span class="section-kicker">SUA REDE</span><h1 id="homeWelcomeTitle">Bom te ver por aqui.</h1><p>Seu espaço para conversar, descobrir pessoas e acompanhar a comunidade.</p></div></div>
+    <button type="button" id="homeMessagesButton" class="home-messages-cta">
+      <span class="home-messages-icon" aria-hidden="true">✉</span>
+      <span class="home-messages-copy"><strong>Mensagens</strong><small>Abra suas conversas e veja quem falou contigo.</small></span>
+      <span id="homeUnreadBadge" class="unread-badge" hidden>0</span><span class="home-messages-arrow" aria-hidden="true">→</span>
+    </button>
+    <div class="home-shortcuts" aria-label="Atalhos">
+      <button type="button" data-open="discoverScreen"><span>⌕</span><strong>Descobrir pessoas</strong><small>Conheça gente nova</small></button>
+      <button type="button" data-open="randomChatScreen"><span>◎</span><strong>Chat aleatório</strong><small>Converse agora</small></button>
+      <button type="button" data-open="communitiesScreen"><span>♧</span><strong>Comunidades</strong><small>Encontre seus grupos</small></button>
+      <button type="button" data-open="profileScreen"><span>◉</span><strong>Meu perfil</strong><small>Veja como aparece</small></button>
+    </div>
+  </section>
+  <section id="homeProfileSetupPanel" class="home-profile-setup" hidden>
+    <span class="section-kicker">QUASE LÁ</span><h1>Vamos terminar seu perfil.</h1>
+    <p>Sua conta já está criada. Complete seu perfil para começar a conhecer pessoas e usar os recursos do Brazilly.</p>
+    <button type="button" class="button button-primary button-large" id="homeCompleteProfileButton">Completar meu perfil</button>
+  </section>
+  <section class="stories-section" id="homeStoriesSection" aria-label="Stories" hidden>
     <div class="stories-heading"><div><span class="section-kicker">MOMENTOS</span><h2>Stories</h2><p>Compartilhe um pedacinho do seu dia.</p></div></div>
     <div id="storiesStrip" class="stories-strip"><p class="stories-hint">Carregando stories...</p></div>
     <div id="storyComposer" class="story-composer" hidden><form id="storyComposerForm"><strong>Publicar story</strong><label for="storyImageInput">Foto (JPG, PNG ou WebP, até 15 MB)</label><input id="storyImageInput" type="file" accept="image/jpeg,image/png,image/webp" required><label for="storyCaptionInput">Legenda (opcional)</label><input id="storyCaptionInput" maxlength="300" placeholder="Escreva algo..."><label for="storyAudience">Quem pode ver?</label><select id="storyAudience"><option value="public">Todos na Brazilly</option><option value="friends">Somente amigos</option></select><div class="story-composer-actions"><button type="button" class="button button-outline" onclick="document.getElementById('storyComposer').hidden=true">Cancelar</button><button id="publishStoryButton" class="button button-primary">Publicar story</button></div></form></div>
