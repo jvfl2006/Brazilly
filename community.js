@@ -46,7 +46,7 @@
       const content=document.createElement('div');content.className='community-message-content';
       if(!mine&&previous?.sender_id!==row.sender_id){const name=document.createElement('strong');name.className='community-sender-name';name.textContent=row.sender_name||'Pessoa';content.append(name);}
       const body=document.createElement('p');body.textContent=row.body;const footer=document.createElement('footer');const time=document.createElement('time');time.textContent=new Date(row.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});footer.append(time);
-      if(mine){const ticks=document.createElement('span');ticks.className='message-read-ticks'+(Number(row.read_count)>0?' is-read':'');ticks.textContent='✓✓';ticks.title=Number(row.read_count)>0?'Lida por '+row.read_count+' participante(s)':'Enviada';footer.append(ticks);}
+      if(mine){const readCount=Number(row.read_count)||0,others=Math.max(0,(Number(row.member_count)||1)-1),allRead=others>0&&readCount>=others;const ticks=document.createElement('span');ticks.className='message-read-ticks'+(allRead?' is-read':'');ticks.textContent='✓✓';ticks.title=allRead?'Lida por todos ('+readCount+')':readCount+' de '+others+' participantes leram';footer.append(ticks);}
       content.append(body,footer);item.append(content);root.append(item);previous={sender_id:row.sender_id,day};
     }
     root.scrollTop=root.scrollHeight;
