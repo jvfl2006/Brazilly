@@ -446,7 +446,7 @@
 }
 .profile-world-page .profile-world-profile-card .profile-world-avatar{width:66px;height:66px;flex-basis:66px;border-radius:19px}
 .profile-world-page .profile-world-profile-card .world-identity-copy{font-size:clamp(17px,2vw,23px)}
-.profile-world-profile-tabs{display:flex;align-items:center;gap:7px;padding:11px 24px;border-bottom:1px solid rgba(235,220,255,.12);overflow-x:auto;scrollbar-width:none;padding-left:clamp(190px,14vw,245px)
+.profile-world-profile-tabs{display:flex;align-items:center;gap:7px;padding:11px 24px 11px clamp(190px,14vw,245px);border-bottom:1px solid rgba(235,220,255,.12);overflow-x:auto;scrollbar-width:none}
 .profile-world-profile-tabs::-webkit-scrollbar{display:none}
 .profile-world-tab{flex:0 0 auto;padding:9px 16px;border:1px solid transparent;border-radius:999px;background:transparent;color:#d5cbe8;font:inherit;font-size:12px;font-weight:750;cursor:pointer;transition:background .18s,border-color .18s,color .18s}
 .profile-world-tab:hover{background:rgba(255,255,255,.08);color:#fff}
@@ -477,7 +477,7 @@
  .profile-world-card-heading{align-items:flex-start;flex-direction:column;padding:15px 16px 12px;gap:12px}
  .profile-world-page .profile-world-profile-card .profile-world-identity{max-width:100%}
  .profile-world-page .profile-world-profile-card .profile-world-avatar{width:54px;height:54px;flex-basis:54px}
- .profile-world-profile-tabs{padding:9px 12px 9px 132px;gap:4px;min-height:52px}
+ .profile-world-profile-tabs{padding:9px 12px 9px 118px;gap:4px;min-height:52px}
  .profile-world-tab{padding:8px 12px;font-size:11px}
  .profile-world-page .profile-world-profile-card .profile-world-profile-content{padding:16px}
  .profile-world-detail-grid{grid-template-columns:1fr}
@@ -488,9 +488,9 @@
 }
 
 /* Profile hero portrait: prominent avatar anchored to the left edge of the profile card. */
-.profile-world-page .profile-world-stage-2d .profile-world-objects{display:none!important}
+.profile-world-page .profile-world-stage-2d .profile-world-objects{display:none!important;visibility:hidden!important;pointer-events:none!important}
 .profile-world-page .profile-world-stage-2d .profile-world-featured-avatar{
- position:absolute;z-index:12;left:clamp(105px,23vw,420px);top:clamp(185px,22vh,255px);
+ position:absolute;z-index:12;left:clamp(14px,calc(50% - 654px),480px);top:clamp(185px,22vh,255px);
  width:clamp(132px,10.5vw,190px);height:clamp(132px,10.5vw,190px);
  border:5px solid rgba(247,235,255,.96);border-radius:50%;
  background-color:#30224d;background-size:cover;background-position:center;
@@ -512,12 +512,16 @@
 .profile-world-page .profile-world-profile-card .profile-world-card-subtitle{line-height:1.5}
 @media(max-width:760px){
  .profile-world-page .profile-world-stage-2d .profile-world-featured-avatar{
-  left:22px;top:155px;width:112px;height:112px;border-width:4px;
+  left:14px;top:205px;width:104px;height:104px;border-width:4px;
  }
- .profile-world-page .profile-world-profile-card{top:245px}
+ .profile-world-page .profile-world-profile-card{top:245px;width:calc(100% - 24px);max-height:calc(100% - 270px)}
  .profile-world-page .profile-world-profile-card .profile-world-card-heading{
   min-height:112px;padding:16px 14px 14px 125px;align-items:flex-start;justify-content:center;
  }
  .profile-world-page .profile-world-profile-card .profile-world-card-intro{display:none}
  .profile-world-page .profile-world-profile-card .profile-world-identity .world-identity-copy{font-size:18px}
 }
+
+#profileScreen .profile-world-stage-2d .profile-world-objects,#profileScreen .profile-world-stage-2d .profile-world-object{display:none!important;visibility:hidden!important;pointer-events:none!important}
+#profileScreen .profile-world-stage-2d .profile-world-featured-avatar{left:clamp(14px,calc(50% - 654px),480px)}
+@media(max-width:760px){#profileScreen .profile-world-stage-2d .profile-world-featured-avatar{left:14px;top:205px;width:104px;height:104px}#profileScreen .profile-world-profile-card{top:245px}}
