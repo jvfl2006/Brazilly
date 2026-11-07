@@ -2,7 +2,8 @@
   'use strict';
   if (!window.supabase || !db) return;
 
-  const glyph = { wk:'♔', wq:'♕', wr:'♖', wb:'♗', wn:'♘', wp:'♙', bk:'♚', bq:'♛', br:'♜', bb:'♝', bn:'♞', bp:'♟︎' };
+  // Peças PNG do conjunto Wikipedia incluído em chessboard-element (CC BY-SA 3.0).
+  const pieceAsset = (piece) => `https://raw.githubusercontent.com/zeth/chessboard-element/master/chesspieces/wikipedia/${piece.color}${piece.type.toUpperCase()}.png`;
   let ChessCtor = null;
   const chessLibraryReady = import('https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm').then(module => { ChessCtor = module.Chess; });
   let currentRoom = null;
@@ -278,7 +279,7 @@
       if(legalTargets.includes(square))button.classList.add(piece?'is-capture':'is-target');
       if(file===0){const coord=document.createElement('small');coord.className='chess-coordinate rank';coord.textContent=String(8-rank);button.append(coord);}
       if(rank===7){const coord=document.createElement('small');coord.className='chess-coordinate file';coord.textContent='abcdefgh'[file];button.append(coord);}
-      if(piece){const span=document.createElement('span');span.className='chess-piece '+(piece.color==='w'?'white-piece':'black-piece');span.textContent=glyph[piece.color+piece.type];button.append(span);}
+      if(piece){const image=document.createElement('img');image.className='chess-piece-image';image.src=pieceAsset(piece);image.alt=(piece.color==='w'?'Peça branca ':'Peça preta ')+({k:'rei',q:'dama',r:'torre',b:'bispo',n:'cavalo',p:'peão'}[piece.type]);image.draggable=false;image.loading='eager';button.append(image);}
       button.addEventListener('click',()=>onSquareClick(square));root.append(button);
     }
     root.classList.toggle('is-disabled',!canMove);
