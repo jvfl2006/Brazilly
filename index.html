@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#10121a"><meta name="description" content="BRAZILLY: converse, faça amizades e descubra pessoas perto de você.">
-  <title>BRAZILLY | Pessoas, conversas e possibilidades</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="social-expansion.css">
+  <title>BRAZILLY | Pessoas, conversas e possibilidades</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="social-expansion.css"><link rel="stylesheet" href="posts.css">
 </head>
 <body>
 <header class="site-header">
@@ -43,6 +43,24 @@
       <button type="button" data-open="communitiesScreen"><span class="shortcut-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.4 2.4-5.5 6-5.5s6 2.1 6 5.5M15 15c3.6-.3 6 1.5 6 4.5"/></svg></span><strong>Comunidades</strong><small>Encontre seus grupos</small></button>
       <button type="button" data-open="profileScreen"><span class="shortcut-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.6-4.2 3.3-6.3 8-6.3s7.4 2.1 8 6.3"/></svg></span><strong>Meu perfil</strong><small>Veja como aparece</small></button>
     </div>
+    <section id="homePostsSection" class="home-posts-section" aria-label="Publicações da comunidade">
+      <div class="home-posts-heading">
+        <div><span class="section-kicker">SEU FEED</span><h2>O que está acontecendo?</h2><p>Compartilhe fotos, vídeos e momentos com a comunidade.</p></div>
+        <button type="button" id="openPostComposer" class="button button-primary">＋ Nova publicação</button>
+      </div>
+      <form id="postComposer" class="post-composer" hidden>
+        <div class="post-composer-top"><strong>Nova publicação</strong><button type="button" id="closePostComposer" class="post-close" aria-label="Fechar">×</button></div>
+        <label class="post-file-picker" for="postMediaInput"><span>＋</span><strong>Adicionar fotos ou vídeos</strong><small>Até 10 arquivos · Fotos até 15 MB · Vídeos até 50 MB</small></label>
+        <input id="postMediaInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" multiple hidden>
+        <div id="postMediaPreview" class="post-media-preview"></div>
+        <label for="postCaption">Legenda</label>
+        <textarea id="postCaption" rows="3" maxlength="2200" placeholder="O que você quer compartilhar?"></textarea>
+        <div class="post-filter-row"><label for="postFilter">Filtro visual</label><select id="postFilter"><option value="none">Original</option><option value="warm">Quente</option><option value="mono">Preto e branco</option><option value="vivid">Vibrante</option><option value="cool">Frio</option></select></div>
+        <div class="post-composer-footer"><small>Publicação visível para pessoas conectadas ao Brazilly. Controles de audiência serão adicionados depois.</small><button type="submit" id="publishPostButton" class="button button-primary">Publicar</button></div>
+        <p id="postComposerStatus" class="field-note" aria-live="polite"></p>
+      </form>
+      <div id="homePostsFeed" class="home-posts-feed"><p class="field-note">Carregando publicações...</p></div>
+    </section>
   </section>
   <section id="homeProfileSetupPanel" class="home-profile-setup" hidden>
     <span class="section-kicker">QUASE LÁ</span><h1>Vamos terminar seu perfil.</h1>
@@ -232,5 +250,5 @@
 <div class="modal-backdrop" id="profileDetailModal" hidden><div class="modal-card profile-detail-card" role="dialog" aria-modal="true" aria-labelledby="profileDetailName"><button class="modal-close" data-close-modal="profileDetailModal" aria-label="Fechar">×</button><div id="profileDetailContent"></div><section class="profile-wall-section"><h3>Mural de recados</h3><div id="profileDetailWall" class="social-wall-list"></div></section><div class="profile-social-actions"><button class="button button-outline full-button" id="friendRequestButton">Adicionar amigo</button><button class="button button-outline full-button" id="favoriteProfileButton">☆ Favoritar</button><button class="button button-outline full-button" id="blockProfileButton">Bloquear</button><button class="button button-outline full-button" id="reportProfileButton">Denunciar</button></div><button class="button button-primary full-button" id="startConversationButton">✉ Enviar mensagem</button></div></div>
 <div class="modal-backdrop" id="filterModal" hidden><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="filterTitle"><button class="modal-close" data-close-modal="filterModal">×</button><h2 id="filterTitle">Filtros de descoberta</h2><p class="field-note">Os filtros serão aplicados aos perfis disponíveis na comunidade.</p><div class="field-grid"><div><label for="filterAgeMin">Idade mínima</label><input type="number" id="filterAgeMin" min="18" max="100" value="18"></div><div><label for="filterAgeMax">Idade máxima</label><input type="number" id="filterAgeMax" min="18" max="100" value="99"></div></div><label for="filterGender">Gênero</label><select id="filterGender"><option value="all">Todos</option><option>Mulher</option><option>Homem</option><option>Não binário</option><option>Outro</option></select><label for="filterIntent">Intenção</label><select id="filterIntent"><option value="all">Todas</option><option>Fazer novas amizades</option><option>Encontrar um relacionamento sério</option><option>Conhecer pessoas sem compromisso</option><option>Encontrar pessoas para jogar</option><option>Encontrar parceiros para hobbies</option></select><label for="filterInterest">Interesse</label><input id="filterInterest" placeholder="Ex.: Minecraft, cinema, rock"><label for="filterEducation">Escolaridade</label><select id="filterEducation"><option value="all">Todas</option><option>Ensino fundamental</option><option>Ensino médio</option><option>Ensino técnico</option><option>Superior incompleto</option><option>Superior completo</option><option>Pós-graduação</option></select><label for="filterLifestyle">Frequência de exercícios</label><select id="filterLifestyle"><option value="all">Não filtrar</option><option>Nunca</option><option>Raramente</option><option>1–2 vezes por semana</option><option>3–4 vezes por semana</option><option>5+ vezes por semana</option></select><label for="filterCity">Cidade</label><input id="filterCity" placeholder="Ex.: Pelotas"><label class="check-row"><input type="checkbox" id="filterPhotos"> Mostrar somente perfis com fotos</label><label class="check-row"><input type="checkbox" id="strictFilters"> Correspondência rigorosa (todos os critérios)</label><p class="field-note">Distância em quilômetros e status online serão adicionados em uma próxima etapa.</p><div class="wizard-actions"><button class="button button-outline" id="clearFilters">Limpar</button><button class="button button-primary" id="applyFilters">Aplicar filtros</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js"></script><script src="community.js"></script><script src="stories.js"></script><script src="games/games.js"></script><script src="streaming.js"></script><script src="social-expansion.js"></script>
+<script src="script.js"></script><script src="community.js"></script><script src="stories.js"></script><script src="games/games.js"></script><script src="streaming.js"></script><script src="social-expansion.js"></script><script src="posts.js"></script>
 </body></html>
