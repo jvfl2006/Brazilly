@@ -63,5 +63,6 @@
   document.addEventListener('click',e=>{if(e.target.matches('[data-open="homeScreen"]'))setTimeout(loadStories,150);});
   db.auth.onAuthStateChange(()=>setTimeout(loadStories,250));
   loadStories();
+  setTimeout(loadStories,900);
   window.refreshBrazillyStories=loadStories;
 })();
