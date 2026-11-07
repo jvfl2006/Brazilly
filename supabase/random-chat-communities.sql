@@ -156,7 +156,7 @@ create policy community_messages_read_members on public.community_messages for s
 ));
 drop policy if exists community_messages_send_members on public.community_messages;
 create policy community_messages_send_members on public.community_messages for insert to authenticated with check(
- sender_id=auth.uid() and exists(select 1 from public.community_members m where m.community_id=community_id and m.user_id=auth.uid())
+ sender_id=auth.uid() and exists(select 1 from public.community_members m where m.community_id=community_messages.community_id and m.user_id=auth.uid())
 );
 create or replace function public.create_community(p_name text,p_description text default '',p_category text default 'Geral')
 returns uuid language plpgsql security definer set search_path=public
