@@ -20,18 +20,18 @@ function renderPreview(){
   item.append(remove);root.append(item);
  });
 }
-function validMedia(file){
+function validMedia(file,notify=postNotice){
  if(file.type.startsWith('image/')){
-  if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)){postNotice('Formato de imagem não aceito. Use JPG, PNG, WEBP ou GIF.',true);return false;}
-  if(file.size>IMAGE_LIMIT){postNotice('Cada foto pode ter no máximo 15 MB.',true);return false;}
+  if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)){notify('Formato de imagem não aceito. Use JPG, PNG, WEBP ou GIF.',true);return false;}
+  if(file.size>IMAGE_LIMIT){notify('Cada foto pode ter no máximo 15 MB.',true);return false;}
   return true;
  }
  if(file.type.startsWith('video/')){
-  if(!['video/mp4','video/webm','video/quicktime'].includes(file.type)){postNotice('Formato de vídeo não aceito. Use MP4, WebM ou MOV.',true);return false;}
-  if(file.size>VIDEO_LIMIT){postNotice('Cada vídeo pode ter no máximo 50 MB.',true);return false;}
+  if(!['video/mp4','video/webm','video/quicktime'].includes(file.type)){notify('Formato de vídeo não aceito. Use MP4, WebM ou MOV.',true);return false;}
+  if(file.size>VIDEO_LIMIT){notify('Cada vídeo pode ter no máximo 50 MB.',true);return false;}
   return true;
  }
- postNotice('Escolha uma foto ou vídeo compatível.',true);return false;
+ notify('Escolha uma foto ou vídeo compatível.',true);return false;
 }
 function openComposer(){if(!currentUser){openModal('loginModal');return;}const form=$p('postComposer');form.hidden=false;$p('postCaption').focus();}
 function closeComposer(){const form=$p('postComposer');form.hidden=true;form.reset();selectedFiles=[];renderPreview();postNotice('');}
@@ -78,8 +78,11 @@ function renderPostEditor(){
   const actions=document.createElement('div');actions.className='editor-media-actions';
   const up=makeButton('↑','',()=>{if(index>0){[editorItems[index-1],editorItems[index]]=[editorItems[index],editorItems[index-1]];renderPostEditor();}});up.disabled=index===0;up.setAttribute('aria-label','Mover para esquerda');
   const down=makeButton('↓','',()=>{if(index<editorItems.length-1){[editorItems[index+1],editorItems[index]]=[editorItems[index],editorItems[index+1]];renderPostEditor();}});down.disabled=index===editorItems.length-1;down.setAttribute('aria-label','Mover para direita');
+  const replace=makeButton('↻','',()=>fileInput.click());replace.setAttribute('aria-label','Substituir mídia');
+  const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime';fileInput.hidden=true;
+  fileInput.addEventListener('change',()=>{const file=fileInput.files?.[0];if(!file)return;if(!validMedia(file,editorMessage)){fileInput.value='';return;}if(editorItems[index].objectUrl)URL.revokeObjectURL(editorItems[index].objectUrl);const objectUrl=URL.createObjectURL(file);editorItems[index]={...editorItems[index],file,objectUrl,media_type:file.type.startsWith('video/')?'video':'image',mime_type:file.type};renderPostEditor();});
   const remove=makeButton('×','editor-remove',()=>{const removed=editorItems.splice(index,1)[0];if(removed.objectUrl)URL.revokeObjectURL(removed.objectUrl);renderPostEditor();});remove.setAttribute('aria-label','Remover mídia');
-  actions.append(up,down,remove);card.append(actions);root.append(card);
+  actions.append(up,down,replace,remove);card.append(fileInput,actions);root.append(card);
  });
 }
 async function savePostEditor(){
@@ -157,7 +160,7 @@ function initPosts(){
  $p('postFilter')?.addEventListener('change',renderPreview);$p('postComposer')?.addEventListener('submit',publishPost);
  $p('closePostEditor')?.addEventListener('click',closePostEditor);$p('cancelPostEditor')?.addEventListener('click',closePostEditor);$p('savePostEditor')?.addEventListener('click',savePostEditor);
  $p('postEditorModal')?.querySelector('[data-close-post-editor]')?.addEventListener('click',closePostEditor);
- $p('postEditorFileInput')?.addEventListener('change',event=>{for(const file of [...(event.target.files||[])]){if(editorItems.length>=MAX_FILES){editorMessage('Uma publicação pode ter até 10 mídias.',true);break;}if(validMedia(file)){const objectUrl=URL.createObjectURL(file);editorItems.push({file,objectUrl,media_type:file.type.startsWith('video/')?'video':'image',mime_type:file.type});}}event.target.value='';renderPostEditor();});
+ $p('postEditorFileInput')?.addEventListener('change',event=>{for(const file of [...(event.target.files||[])]){if(editorItems.length>=MAX_FILES){editorMessage('Uma publicação pode ter até 10 mídias.',true);break;}if(validMedia(file,editorMessage)){const objectUrl=URL.createObjectURL(file);editorItems.push({file,objectUrl,media_type:file.type.startsWith('video/')?'video':'image',mime_type:file.type});}}event.target.value='';renderPostEditor();});
  $p('postEditorCaption')?.addEventListener('input',event=>$p('postEditorCaptionCount').textContent=String(event.target.value.length));
  document.querySelectorAll('[data-editor-filter]').forEach(button=>button.addEventListener('click',()=>setEditorFilter(button.dataset.editorFilter)));
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$p('postEditorModal').hidden)closePostEditor();});
