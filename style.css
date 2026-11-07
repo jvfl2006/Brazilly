@@ -478,3 +478,13 @@ body.story-view-open{overflow:hidden}
 .presentation-choice-actions .button{min-height:44px}
 @media(max-width:760px){.streaming-screen{padding:14px 12px 40px}.streaming-page-hero{padding:56px 20px 26px}.streaming-page-features{grid-template-columns:1fr}.streaming-float-jump{right:16px;bottom:88px;width:56px;height:56px}.presentation-choice-actions{flex-direction:column}.presentation-choice-actions .button{width:100%}}
 @media(prefers-reduced-motion:reduce){.streaming-float-jump{transition:none}.story-reaction-buttons button{transition:none}}
+
+/* Story replies in the viewer */
+.story-reply-form{display:flex;gap:8px;padding:0 14px 14px;background:#171923}
+.story-reply-form input{flex:1;min-width:0;height:42px;padding:0 14px;border:1px solid #ffffff26;border-radius:22px;background:#ffffff0d;color:#fff;outline:none}
+.story-reply-form input:focus{border-color:#a991ff}
+.story-reply-form button{width:42px;height:42px;flex:0 0 42px;border:0;border-radius:50%;background:#8068ed;color:white;font-size:19px;cursor:pointer}
+.story-reply-form button:disabled{opacity:.5;cursor:wait}
+.direct-story-reference{display:grid;gap:4px;padding:9px 11px;border-left:3px solid #a991ff;border-radius:7px;background:#8068ed18}
+.direct-story-reference strong{font-size:11px;color:#c7baff}
+.direct-story-reference span{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
