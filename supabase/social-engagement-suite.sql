@@ -219,3 +219,29 @@ create policy profile_visits_insert_self on public.profile_visits for insert to 
 with check(visitor_id=(select auth.uid()) and profile_id<>(select auth.uid()) and public.can_view_profile(profile_id));
 drop trigger if exists private_diary_touch_updated_at on public.private_diary_entries;
 create trigger private_diary_touch_updated_at before update on public.private_diary_entries for each row execute function public.set_updated_at();
+
+-- Private voice rooms use one-time shareable invite codes.
+alter table public.voice_rooms add column if not exists invite_code text;
+create unique index if not exists voice_rooms_invite_code_unique on public.voice_rooms(invite_code) where invite_code is not null;
+drop policy if exists voice_rooms_delete_owner on public.voice_rooms;
+create policy voice_rooms_delete_owner on public.voice_rooms for delete to authenticated using(created_by=(select auth.uid()));
+drop policy if exists community_polls_creator_delete on public.community_polls;
+create policy community_polls_creator_delete on public.community_polls for delete to authenticated using(created_by=(select auth.uid()));
+grant delete on public.community_polls to authenticated;
+create or replace function public.join_voice_room_by_code(p_invite_code text)
+returns table(room_id uuid,room_title text,max_participants smallint)
+language plpgsql security definer set search_path=public
+as $$
+declare v_room public.voice_rooms%rowtype;v_count integer;
+begin
+ if auth.uid() is null then raise exception 'Entre na sua conta.'; end if;
+ if char_length(trim(coalesce(p_invite_code,'')))<6 then raise exception 'Código inválido.'; end if;
+ select * into v_room from public.voice_rooms where invite_code=upper(trim(p_invite_code)) and is_public=false and closed_at is null for update;
+ if not found then raise exception 'Sala privada não encontrada ou encerrada.'; end if;
+ select count(*) into v_count from public.voice_room_members where voice_room_members.room_id=v_room.id and user_id<>auth.uid();
+ if v_count>=v_room.max_participants then raise exception 'A sala está cheia.'; end if;
+ insert into public.voice_room_members(room_id,user_id) values(v_room.id,auth.uid()) on conflict(room_id,user_id) do nothing;
+ return query select v_room.id,v_room.title,v_room.max_participants;
+end; $$;
+revoke all on function public.join_voice_room_by_code(text) from public,anon;
+grant execute on function public.join_voice_room_by_code(text) to authenticated;
