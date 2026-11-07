@@ -637,7 +637,12 @@ function addMessageToView(message) {
     }).catch(()=>{mediaBox.textContent='Não foi possível carregar a mídia.';});
     bubble.append(mediaBox);
   }
-  if(message.message_type==='text'||!message.message_type){
+  if(message.story_id){
+    const storyCard=document.createElement('div');storyCard.className='direct-story-reference';
+    const label=document.createElement('strong');label.textContent='↪ Resposta a um story';
+    const excerpt=document.createElement('span');excerpt.textContent=message.body||'Story compartilhado';
+    storyCard.append(label,excerpt);bubble.append(storyCard);
+  } else if(message.message_type==='text'||!message.message_type){
     const body = document.createElement('p');
     body.textContent = message.body;
     bubble.append(body);
@@ -655,7 +660,7 @@ function addMessageToView(message) {
   root.scrollTop = root.scrollHeight;
 }
 async function loadConversationMessages(conversationId) {
-  const {data,error} = await db.from('messages').select('id,conversation_id,sender_id,body,created_at,read_at,message_type,media_path,media_mime,media_size,media_blurred')
+  const {data,error} = await db.from('messages').select('id,conversation_id,sender_id,body,created_at,read_at,message_type,media_path,media_mime,media_size,media_blurred,story_id')
     .eq('conversation_id', conversationId).order('created_at', {ascending:true}).limit(300);
   if (error) throw error;
   if (conversationId !== activeConversationId) return;
@@ -869,7 +874,20 @@ async function startAudioRecording(){
  }catch(error){recordingConversationId=null;audioRecorder=null;updateComposerAction();alert('Não foi possível acessar o microfone: '+error.message);}
 }
 $('recordAudioButton').addEventListener('click',async()=>{if(audioRecorder?.state==='recording'){audioRecorder.stop();$('recordAudioButton').classList.remove('is-recording');$('audioRecordStatus').textContent='Processando áudio...';return;}if($('directMessageInput').value.trim()){$('directMessageForm').requestSubmit();return;}await startAudioRecording();});
-async function sendDirectMessage(){const input=$('directMessageInput'),body=input.value.trim();if(!body||!activeConversationId||!currentUser)return;const button=$('recordAudioButton');button.disabled=true;try{const {error}=await db.from('messages').insert({conversation_id:activeConversationId,sender_id:currentUser.id,body});if(error)throw error;input.value='';updateComposerAction();}catch(error){alert('Não foi possível enviar a mensagem: '+error.message);}finally{button.disabled=false;input.focus();}}
+async function sendDirectMessage(){
+ const input=$('directMessageInput'),body=input.value.trim();if(!body||!activeConversationId||!currentUser)return;
+ const conversationId=activeConversationId,button=$('recordAudioButton'),tempId='pending-'+crypto.randomUUID();
+ const pending={id:tempId,conversation_id:conversationId,sender_id:currentUser.id,body,created_at:new Date().toISOString(),message_type:'text'};
+ addMessageToView(pending);input.value='';updateComposerAction();button.disabled=true;
+ try{
+  const {data,error}=await db.from('messages').insert({conversation_id:conversationId,sender_id:currentUser.id,body}).select('id,conversation_id,sender_id,body,created_at,read_at,message_type,story_id').single();
+  if(error)throw error;
+  const node=$('conversationMessages').querySelector('[data-message-id="'+tempId+'"]');if(node)node.remove();messageCache.delete(tempId);addMessageToView(data);
+ }catch(error){
+  const node=$('conversationMessages').querySelector('[data-message-id="'+tempId+'"]');if(node)node.remove();messageCache.delete(tempId);
+  alert('Não foi possível enviar a mensagem: '+error.message);
+ }finally{button.disabled=false;input.focus();}
+}
 $('directMessageForm').addEventListener('submit',async e=>{e.preventDefault();if(!$('directMessageInput').value.trim())return;await sendDirectMessage();});updateComposerAction();
 window.addEventListener('beforeunload',()=>{if(activeConversationChannel)db.removeChannel(activeConversationChannel);});
 
