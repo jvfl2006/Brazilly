@@ -76,7 +76,21 @@
   const home = document.getElementById('homeScreen');
   const entry = document.getElementById('gamesEntry');
   const floatButton = document.getElementById('gamesFloatJump');
-  if (entry && floatButton) { entry.append(floatButton); }
+  if (entry && floatButton) {
+    entry.append(floatButton);
+    entry.classList.add('reveal-ready');
+    if ('IntersectionObserver' in window) {
+      const gamesRevealObserver = new IntersectionObserver((items) => {
+        if (items.some(item => item.isIntersecting)) {
+          entry.classList.add('is-visible');
+          gamesRevealObserver.disconnect();
+        }
+      }, { threshold: 0.16, rootMargin: '0px 0px -8% 0px' });
+      gamesRevealObserver.observe(entry);
+    } else {
+      entry.classList.add('is-visible');
+    }
+  }
   const css = document.createElement('link');
   css.rel = 'stylesheet';
   css.href = 'games/games.css';
