@@ -3,14 +3,14 @@
 Este arquivo acompanha funcionalidades planejadas. Um item só deve ser marcado como concluído depois de implementação e teste real com duas contas.
 
 ## Em implementação
-- [x] Campos de profissão, religião/crença e situação de relacionamento no perfil.
-- [x] Link para o teste 16Personalities durante o cadastro.
-- [x] Catálogo pesquisável de municípios via API oficial do IBGE.
-- [x] Interesses personalizados ("Outro").
-- [x] Solicitações de amizade, aceitação e recusa.
-- [x] Favoritos privados por usuário.
-- [x] Bloqueio com remoção das relações sociais e bloqueio de mensagens.
-- [x] Abrir perfil a partir de uma conversa.
+- [~] Campos de profissão, religião/crença e situação de relacionamento no perfil.
+- [~] Link para o teste 16Personalities durante o cadastro.
+- [~] Catálogo pesquisável de municípios via API oficial do IBGE.
+- [~] Interesses personalizados ("Outro").
+- [~] Solicitações de amizade, aceitação e recusa.
+- [~] Favoritos privados por usuário.
+- [~] Bloqueio com remoção das relações sociais e bloqueio de mensagens.
+- [~] Abrir perfil a partir de uma conversa.
 - [ ] Privacidade completa do perfil, incluindo armazenamento privado e URLs assinadas para fotos. Não expor o controle ao usuário antes dessa etapa.
 
 ## Mensagens
