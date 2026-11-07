@@ -219,6 +219,7 @@ function showScreen(id) {
   if (id === 'moderationScreen') renderModerationReports();
   if (id === 'communityHubScreen') loadCommunityHub();
   if (id === 'howItWorksScreen') { activePresentationSlide=0; goToPresentationSlide(0); }
+  document.dispatchEvent(new CustomEvent('brazilly:screen-changed',{detail:id}));
 }
 document.querySelectorAll('[data-screen]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); showScreen(el.dataset.screen); }));
 document.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', () => showScreen(el.dataset.open)));
@@ -494,7 +495,7 @@ async function renderModerationReports(){
     controls.append(status,save);card.append(heading,users,details,controls);root.append(card);
   }
 }
-$('logoutButton').addEventListener('click',async()=>{if(!confirm('Deseja sair da sua conta Brazilly neste dispositivo?'))return;const {error}=await db.auth.signOut();if(error){alert(error.message);return;}currentUser=null;currentProfile=null;isModerator=false;updateHeaderAccountButtons();showScreen('homeScreen');alert('Você saiu da sua conta.');});
+$('logoutButton').addEventListener('click',async()=>{if(!confirm('Deseja sair da sua conta Brazilly neste dispositivo?'))return;await window.BrazillySocialExpansion?.leaveVoiceRoom();const {error}=await db.auth.signOut();if(error){alert(error.message);return;}currentUser=null;currentProfile=null;isModerator=false;updateHeaderAccountButtons();showScreen('homeScreen');alert('Você saiu da sua conta.');});
 // Preferências locais. Recursos que exigem servidor são descritos sem simular execução.
 const defaultSettings={theme:'dark',wallpaper:'default',lastSeen:true,online:true,readReceipt:true,mediaDownload:'never'};
 function readSettings(){try{return {...defaultSettings,...JSON.parse(localStorage.getItem(STORAGE.settings)||'{}')};}catch{return {...defaultSettings};}}
@@ -570,6 +571,7 @@ function openProfileDetails(p) {
   if (p.intentions?.length) { const h=document.createElement('h3');h.textContent='O que procura';root.append(h);const v=document.createElement('p');v.className='field-note';v.textContent=p.intentions.join(' · ');root.append(v); }
   if (p.interests?.length) { const h=document.createElement('h3');h.textContent='Interesses';root.append(h);const tags=document.createElement('div');tags.className='preview-tags';p.interests.forEach(name=>{const tag=document.createElement('span');tag.textContent=name;tags.append(tag);});root.append(tags); }
   openModal('profileDetailModal');
+  document.dispatchEvent(new CustomEvent('brazilly:profile-opened',{detail:p}));
   updateFriendRequestButton(p.user_id);
   $('favoriteProfileButton').textContent='☆ Favoritar';
   if(currentUser){
