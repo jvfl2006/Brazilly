@@ -20,6 +20,7 @@ function showScreen(id) {
   headerNav?.classList.remove('open');
   mobileMenuButton?.setAttribute('aria-expanded', 'false');
   if (id === 'discoverScreen') renderProfiles();
+  if (id === 'messagesScreen') renderConversationList();
   if (id === 'profileScreen') renderProfilePreview();
 }
 document.querySelectorAll('[data-screen]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); showScreen(el.dataset.screen); }));
@@ -205,13 +206,160 @@ async function renderProfiles(){
     const {data,error}=await db.rpc('discover_profiles',args);if(error)throw error;root.innerHTML='';
     $('activeFilterSummary').textContent=Object.values(f).some(v=>v!==''&&v!==false&&v!=='all')?`Filtros aplicados · ${f.strict?'correspondência rigorosa':'priorização por afinidade'}`:'Nenhum filtro aplicado.';
     if(!data?.length){root.textContent='Ainda não encontramos perfis com esses critérios. Tente ampliar os filtros.';return;}
-    data.forEach(p=>{const card=document.createElement('article');card.className='profile-card';const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent=(p.display_name||'?')[0].toUpperCase();const info=document.createElement('div');info.className='profile-info';const title=document.createElement('h3');title.textContent=`${p.display_name}${p.age?`, ${p.age}`:''}`;const bio=document.createElement('p');bio.textContent=p.bio||'Ainda não adicionou uma descrição.';const tags=document.createElement('p');tags.textContent=(p.interests||[]).join(' · ');const note=document.createElement('span');note.textContent=p.city||'Localização não informada';info.append(title,bio,tags,note);if(p.photo_paths?.length){const img=document.createElement('img');img.src=db.storage.from('profile-photos').getPublicUrl(p.photo_paths[0]).data.publicUrl;img.alt=`Foto de ${p.display_name}`;img.style.cssText='width:64px;height:64px;object-fit:cover;border-radius:12px;margin-right:12px';card.append(img);}card.append(avatar,info);root.append(card);});
+    data.forEach(p=>{const card=document.createElement('article');card.className='profile-card';card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label',`Abrir perfil de ${p.display_name}`);card.addEventListener('click',()=>openProfileDetails(p));card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openProfileDetails(p);}});const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent=(p.display_name||'?')[0].toUpperCase();const info=document.createElement('div');info.className='profile-info';const title=document.createElement('h3');title.textContent=`${p.display_name}${p.age?`, ${p.age}`:''}`;const bio=document.createElement('p');bio.textContent=p.bio||'Ainda não adicionou uma descrição.';const tags=document.createElement('p');tags.textContent=(p.interests||[]).join(' · ');const note=document.createElement('span');note.textContent=p.city||'Localização não informada';info.append(title,bio,tags,note);if(p.photo_paths?.length){const img=document.createElement('img');img.src=db.storage.from('profile-photos').getPublicUrl(p.photo_paths[0]).data.publicUrl;img.alt=`Foto de ${p.display_name}`;img.style.cssText='width:64px;height:64px;object-fit:cover;border-radius:12px;margin-right:12px';card.append(img);}card.append(avatar,info);root.append(card);});
   }catch(error){console.error(error);root.textContent=`Não foi possível carregar os perfis: ${error.message}. Verifique se o SQL de configuração foi executado no Supabase.`;}
 }
 $('openFilters').addEventListener('click',()=>{const f=getFilters();$('filterAgeMin').value=f.min||18;$('filterAgeMax').value=f.max||99;$('filterGender').value=f.gender||'all';$('filterIntent').value=f.intent||'all';$('filterInterest').value=f.interest||'';$('filterEducation').value=f.education||'all';$('filterLifestyle').value=f.lifestyle||'all';$('filterCity').value=f.city||'';$('filterPhotos').checked=Boolean(f.photos);$('strictFilters').checked=Boolean(f.strict);openModal('filterModal');});
 $('applyFilters').addEventListener('click',()=>{const min=Number($('filterAgeMin').value),max=Number($('filterAgeMax').value);if(min<18||max<min||max>100){alert('Confira a faixa etária. A idade mínima permitida é 18 anos.');return;}const f={min,max,gender:$('filterGender').value,intent:$('filterIntent').value,interest:$('filterInterest').value.trim(),education:$('filterEducation').value,lifestyle:$('filterLifestyle').value,city:$('filterCity').value.trim(),photos:$('filterPhotos').checked,strict:$('strictFilters').checked};localStorage.setItem(STORAGE.filters,JSON.stringify(f));closeModal('filterModal');renderProfiles();});
 $('clearFilters').addEventListener('click',()=>{localStorage.removeItem(STORAGE.filters);$('filterAgeMin').value=18;$('filterAgeMax').value=99;$('filterGender').value='all';$('filterIntent').value='all';$('filterInterest').value='';$('filterEducation').value='all';$('filterLifestyle').value='all';$('filterCity').value='';$('filterPhotos').checked=false;$('strictFilters').checked=false;renderProfiles();closeModal('filterModal');});
 
-// Chat demonstrativo local: mensagens não são enviadas a outros usuários.
-$('messageForm').addEventListener('submit',e=>{e.preventDefault();const value=$('messageInput').value.trim();if(!value)return;const msg=document.createElement('div');msg.className='message sent';msg.textContent=value;$('messages').append(msg);$('messageInput').value='';$('messages').scrollTop=$('messages').scrollHeight;});
+// Mensagens diretas entre contas autenticadas, persistidas no Supabase.
+let selectedPublicProfile = null;
+let activeConversationId = null;
+let activeConversationChannel = null;
+const messageCache = new Set();
+
+function openProfileDetails(p) {
+  selectedPublicProfile = p;
+  const root = $('profileDetailContent');
+  root.innerHTML = '';
+  const photos = document.createElement('div');
+  photos.className = 'detail-photos';
+  (p.photo_paths || []).forEach(path => {
+    const img = document.createElement('img');
+    img.src = db.storage.from('profile-photos').getPublicUrl(path).data.publicUrl;
+    img.alt = 'Foto do perfil';
+    photos.append(img);
+  });
+  if (photos.childElementCount) root.append(photos);
+  const title = document.createElement('h2');
+  title.id = 'profileDetailName';
+  title.textContent = p.age ? `${p.display_name}, ${p.age}` : p.display_name;
+  root.append(title);
+  const meta = [p.city, p.gender, p.education].filter(Boolean).join(' · ');
+  if (meta) { const line = document.createElement('p'); line.className='field-note'; line.textContent=meta; root.append(line); }
+  if (p.bio) { const bio=document.createElement('p'); bio.className='profile-detail-bio'; bio.textContent=p.bio; root.append(bio); }
+  if (p.intentions?.length) { const h=document.createElement('h3');h.textContent='O que procura';root.append(h);const v=document.createElement('p');v.className='field-note';v.textContent=p.intentions.join(' · ');root.append(v); }
+  if (p.interests?.length) { const h=document.createElement('h3');h.textContent='Interesses';root.append(h);const tags=document.createElement('div');tags.className='preview-tags';p.interests.forEach(name=>{const tag=document.createElement('span');tag.textContent=name;tags.append(tag);});root.append(tags); }
+  openModal('profileDetailModal');
+}
+$('startConversationButton').addEventListener('click', async () => {
+  if (!selectedPublicProfile) return;
+  await startDirectConversation(selectedPublicProfile.user_id, selectedPublicProfile.display_name);
+});
+$('messagesButton').addEventListener('click', () => {
+  if (!currentUser) { openModal('loginModal'); return; }
+  showScreen('messagesScreen');
+});
+$('refreshConversations').addEventListener('click', renderConversationList);
+
+function addMessageToView(message) {
+  if (!message || messageCache.has(message.id)) return;
+  messageCache.add(message.id);
+  const root = $('conversationMessages');
+  const bubble = document.createElement('div');
+  bubble.className = 'direct-message ' + (message.sender_id === currentUser?.id ? 'sent' : 'received');
+  bubble.dataset.messageId = message.id;
+  const body = document.createElement('p');
+  body.textContent = message.body;
+  const time = document.createElement('time');
+  time.dateTime = message.created_at;
+  time.textContent = new Date(message.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+  bubble.append(body,time);
+  root.append(bubble);
+  root.scrollTop = root.scrollHeight;
+}
+async function loadConversationMessages(conversationId) {
+  const {data,error} = await db.from('messages').select('id,conversation_id,sender_id,body,created_at,read_at')
+    .eq('conversation_id', conversationId).order('created_at', {ascending:true}).limit(300);
+  if (error) throw error;
+  $('conversationMessages').innerHTML = '';
+  messageCache.clear();
+  (data || []).forEach(addMessageToView);
+  const unread = (data || []).filter(m => m.sender_id !== currentUser.id && !m.read_at).map(m => m.id);
+  if (unread.length) {
+    const {error:readError} = await db.from('messages').update({read_at:new Date().toISOString()}).in('id', unread);
+    if (readError) console.warn('Não foi possível atualizar a confirmação de leitura:', readError.message);
+  }
+}
+function subscribeToConversation(conversationId) {
+  if (activeConversationChannel) db.removeChannel(activeConversationChannel);
+  activeConversationChannel = db.channel('messages-' + conversationId)
+    .on('postgres_changes', {event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.' + conversationId}, payload => {
+      addMessageToView(payload.new);
+      if (payload.new.sender_id !== currentUser?.id) {
+        db.from('messages').update({read_at:new Date().toISOString()}).eq('id',payload.new.id).then(({error})=>{if(error)console.warn(error.message);});
+      }
+    }).subscribe();
+}
+async function openConversation(conversationId, otherName) {
+  activeConversationId = conversationId;
+  $('conversationName').textContent = otherName || 'Conversa';
+  $('conversationStatus').textContent = 'Conversa privada · mensagens em tempo real';
+  $('conversationPlaceholder').hidden = true;
+  $('activeConversation').hidden = false;
+  await loadConversationMessages(conversationId);
+  subscribeToConversation(conversationId);
+  $('directMessageInput').focus();
+}
+async function startDirectConversation(otherUserId, otherName) {
+  if (!currentUser) { closeModal('profileDetailModal'); openModal('loginModal'); return; }
+  if (otherUserId === currentUser.id) { alert('Você não pode iniciar uma conversa consigo mesmo.'); return; }
+  const button = $('startConversationButton');
+  button.disabled = true;
+  button.textContent = 'Abrindo conversa...';
+  try {
+    const {data,error} = await db.rpc('get_or_create_conversation', {p_other_user:otherUserId});
+    if (error) throw error;
+    closeModal('profileDetailModal');
+    await showScreen('messagesScreen');
+    await openConversation(data, otherName);
+    await renderConversationList();
+  } catch (error) {
+    console.error(error);
+    alert('Não foi possível iniciar a conversa: ' + (error.message || 'erro desconhecido'));
+  } finally {
+    button.disabled = false;
+    button.textContent = '✉ Enviar mensagem';
+  }
+}
+async function renderConversationList() {
+  const root = $('conversationList');
+  if (!root) return;
+  root.innerHTML = '';
+  if (!currentUser) { root.textContent = 'Entre na sua conta para ver suas conversas.'; return; }
+  const {data:rows,error} = await db.rpc('list_my_conversations');
+  if (error) { root.textContent = 'Não foi possível carregar conversas: ' + error.message; return; }
+  if (!rows?.length) { root.textContent = 'Você ainda não iniciou nenhuma conversa. Abra um perfil para mandar a primeira mensagem.'; return; }
+  for (const row of rows) {
+    const {data:lastRows} = await db.from('messages').select('body,created_at')
+      .eq('conversation_id',row.conversation_id).order('created_at',{ascending:false}).limit(1);
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'conversation-list-item' + (row.conversation_id === activeConversationId ? ' active' : '');
+    const name = document.createElement('strong'); name.textContent = row.display_name || 'Usuário';
+    const preview = document.createElement('span'); preview.textContent = lastRows?.[0]?.body || 'Conversa iniciada';
+    const date = document.createElement('small'); date.textContent = lastRows?.[0]?.created_at ? new Date(lastRows[0].created_at).toLocaleDateString('pt-BR') : '';
+    item.append(name,preview,date);
+    item.addEventListener('click',()=>openConversation(row.conversation_id,row.display_name));
+    root.append(item);
+  }
+}
+$('directMessageForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = $('directMessageInput').value.trim();
+  if (!body || !activeConversationId || !currentUser) return;
+  const button = $('directMessageForm').querySelector('button');
+  button.disabled = true;
+  try {
+    const {error} = await db.from('messages').insert({conversation_id:activeConversationId,sender_id:currentUser.id,body});
+    if (error) throw error;
+    $('directMessageInput').value = '';
+  } catch (error) {
+    alert('Não foi possível enviar a mensagem: ' + error.message);
+  } finally { button.disabled = false; $('directMessageInput').focus(); }
+});
+window.addEventListener('beforeunload',()=>{if(activeConversationChannel)db.removeChannel(activeConversationChannel);});
+
+// O chat antigo de demonstração foi substituído pelo mensageiro persistente acima.
 setWizardStep(0);renderPhotos();renderProfiles();initAuth();
