@@ -288,14 +288,15 @@
     <header class="profile-studio-header"><div><span class="section-kicker">BRAZILLY PROFILE STUDIO</span><h2 id="profileStudioTitle">Monte seu espaço</h2><p>As mudanças só aparecem no seu perfil depois de salvar.</p></div><button type="button" class="modal-close" data-close-modal="profileStudioModal" aria-label="Fechar">×</button></header>
     <form id="profileStudioForm" class="profile-studio-form">
       <div class="profile-studio-grid">
-        <label>Tema visual<select id="psTheme"><option value="aurora">Aurora roxa</option><option value="midnight">Meia-noite</option><option value="sunset">Pôr do sol</option><option value="forest">Floresta</option><option value="rose">Rosa elétrico</option></select></label>
+        <label>Estilo do espaço<select id="psTheme"><option value="lofi">Lo-fi aconchegante</option><option value="pixel">Pixel art</option><option value="anime">Anime / vaporwave</option><option value="scrapbook">Scrapbook</option><option value="aurora">Aurora roxa</option><option value="midnight">Meia-noite</option><option value="sunset">Pôr do sol</option><option value="forest">Floresta</option><option value="rose">Rosa elétrico</option></select></label>
         <label>Cor de destaque<input id="psAccent" type="color" value="#9277ff"></label>
-        <label class="profile-studio-wide">Capa do perfil<select id="psCover"><option value="aurora">Aurora</option><option value="nebula">Nebulosa</option><option value="ocean">Oceano</option><option value="sunset">Horizonte</option><option value="forest">Floresta</option><option value="minimal">Minimalista</option></select></label>
+        <label>Cenário da capa<select id="psCover"><option value="lofi-room">Quarto lo-fi</option><option value="pixel-room">Quarto pixel</option><option value="anime-sky">Céu anime</option><option value="scrapbook">Colagem suave</option><option value="aurora">Aurora</option><option value="nebula">Nebulosa</option><option value="ocean">Oceano</option><option value="sunset">Horizonte</option><option value="forest">Floresta</option><option value="minimal">Minimalista</option></select></label><label>Decoração<select id="psDecor"><option value="none">Sem decoração</option><option value="subtle">Detalhes discretos</option><option value="cozy">Ambiente aconchegante</option></select></label>
       </div>
-      <section class="profile-studio-section"><h3>Seu mascote</h3><p>Escolha um companheiro para aparecer no seu perfil. Ele não precisa pagar aluguel, pelo menos.</p>
+      <section class="profile-studio-section"><h3>Seu mascote</h3><p>Ele fica no cenário, pode receber carinho e reagir a cliques. Não tem fome, energia ou tarefas obrigatórias.</p>
         <div class="profile-studio-grid">
           <label>Espécie<select id="psMascot"><option value="🐸">Sapo</option><option value="🐱">Gato</option><option value="🦊">Raposa</option><option value="🐼">Panda</option><option value="🐉">Dragão</option><option value="🤖">Robô</option><option value="🐢">Tartaruga</option><option value="🦝">Guaxinim</option><option value="🐧">Pinguim</option><option value="🦖">Dinossauro</option><option value="🐙">Polvo</option><option value="🦦">Lontra</option></select></label>
           <label>Nome do mascote<input id="psMascotName" maxlength="24" placeholder="Ex.: Ferrugem"></label>
+          <label class="profile-studio-wide profile-studio-toggle"><input id="psMascotInteractive" type="checkbox" checked> Permitir que visitantes interajam com o mascote</label>
         </div>
       </section>
       <section class="profile-studio-section"><h3>Widgets do seu perfil</h3><p>Ative os blocos que quiser e organize a ordem deles.</p>
