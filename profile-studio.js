@@ -71,18 +71,19 @@ function mount3DMascot(stage,settings){
   scene.add(new T.HemisphereLight('#fff4df','#48516d',2.1));const key=new T.DirectionalLight('#fff0d7',3.1);key.position.set(-3,6,5);scene.add(key);const rim=new T.DirectionalLight('#9ac8ff',1.3);rim.position.set(4,3,-4);scene.add(rim);
   const floor=new T.Mesh(new T.PlaneGeometry(12,8),new T.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));floor.rotation.x=-Math.PI/2;floor.position.y=0;scene.add(floor);
   const mascot=makeMascotModel(T,settings.emoji);scene.add(mascot);mascot.scale.setScalar(settings.emoji==='🐙'?.82:1);
-  const clock=new T.Clock(),state={x:-2.35,z:0,direction:1,mode:'walk',until:0,pet:0,nextPause:3.8},pointer={x:0,y:0};
+  const clock=new T.Clock(),state={x:-9.2,z:0,direction:1,mode:'walk',until:0,pet:0,nextPause:3.8},pointer={x:0,y:0};
   const resizeToStage=()=>{const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
   resize=new ResizeObserver(resizeToStage);resize.observe(stage);resizeToStage();
   const hit=()=>{state.mode='happy';state.until=clock.elapsedTime+2.2;state.pet=clock.elapsedTime;};
   canvas.addEventListener('pointerdown',hit);canvas.style.pointerEvents=settings.interactive?'auto':'none';canvas.style.cursor=settings.interactive?'pointer':'default';
-  const animate=()=>{if(stopped||!canvas.isConnected){stop();return;}raf=requestAnimationFrame(animate);const t=clock.getElapsedTime(),dt=Math.min(clock.getDelta(),.04),u=mascot.userData;
-   if(state.mode==='happy'&&t>state.until)state.mode='walk';
-   if(state.mode==='walk'){state.x+=state.direction*dt*.78;if(state.x>2.55){state.x=2.55;state.direction=-1;}if(state.x< -2.55){state.x=-2.55;state.direction=1;}}
+  const animate=()=>{if(stopped||!canvas.isConnected){stop();return;}raf=requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime,u=mascot.userData;
+   if(state.mode==='happy'&&t>state.until){state.mode='walk';state.nextPause=t+3+Math.random()*4;}
+   if(state.mode==='walk'){state.x+=state.direction*dt*1.55;if(state.x>9.2){state.x=9.2;state.direction=-1;state.mode='idle';state.until=t+1.1;}if(state.x< -9.2){state.x=-9.2;state.direction=1;state.mode='idle';state.until=t+1.1;}if(t>state.nextPause){state.mode='idle';state.until=t+1.1+Math.random()*1.8;}}
+   else if(state.mode==='idle'&&t>state.until){state.mode='walk';state.nextPause=t+3+Math.random()*5;}
    mascot.position.set(state.x,.04+Math.abs(Math.sin(t*7))*.025,Math.sin(t*.55)*.32);mascot.rotation.y=state.direction>0?Math.PI*.08:-Math.PI*.08;
    const walking=state.mode==='walk',swing=walking?Math.sin(t*7.5)*.48:Math.sin(t*2)*.05;
    u.limbs.forEach((limb,i)=>{limb.rotation.x=swing*(i%2===0?1:-1);});
-   u.head.rotation.y=Math.sin(t*.9)*.12+pointer.x*.16;u.head.rotation.x=Math.sin(t*1.3)*.045-pointer.y*.07;
+   u.head.rotation.y=Math.sin(t*.9)*.12+pointer.x*.16+(state.mode==='idle'?Math.sin(t*1.8)*.18:0);u.head.rotation.x=Math.sin(t*1.3)*.045-pointer.y*.07;
    u.tail.rotation.x=Math.sin(t*4)*.2;u.tail.rotation.y=Math.sin(t*2.4)*.22;
    if(state.mode==='happy'){mascot.position.y=.08+Math.abs(Math.sin((t-state.pet)*12))*.22;u.head.rotation.z=Math.sin(t*9)*.12;}
    renderer.render(scene,camera);
