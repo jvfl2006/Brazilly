@@ -262,6 +262,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     world.scale.set(aspect<1.05?.78:1,1,1);
     camera.position.set(aspect<1.05?0:dist*.43,aspect<1.05?5.6:dist*.37,aspect<1.05?dist:dist*.91);
     camera.lookAt(0,1.38,-.1);camera.updateProjectionMatrix();
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,settings.theme==='pixel'?1:1.5));
     renderer.setSize(Math.round(w*(settings.theme==='pixel'?.58:1)),Math.round(h*(settings.theme==='pixel'?.58:1)),false);
     renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
   };
@@ -276,7 +277,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     fill.color.set(settings.room.time==='night'?'#657fcb':'#a6c9ff');
     ceilingGlow.color.set(p.key);lampGlow.color.set('#ffd5a0');
     dust.material.color.set(settings.accent);
-    stage.closest('.profile-custom-shell').dataset.theme=settings.theme;
+    const shell=stage.closest('.profile-custom-shell');shell.dataset.theme=settings.theme;shell.style.setProperty('--profile-accent',settings.accent);
     aspectCamera();
   };
   const dispose=()=>{
