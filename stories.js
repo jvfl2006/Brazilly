@@ -6,7 +6,7 @@
   const escapeText=value=>String(value||'');
   async function loadStories(){
     const strip=$('storiesStrip');strip.innerHTML='';
-    if(!window.currentUser){strip.innerHTML='<p class="stories-hint">Entre para ver e compartilhar stories.</p>';return;}
+    if(typeof currentUser==='undefined'||!currentUser){strip.innerHTML='';return;}
     const {data,error}=await db.rpc('get_story_feed');
     if(error){strip.textContent='Não foi possível carregar stories.';console.warn(error);return;}
     stories=data||[];
