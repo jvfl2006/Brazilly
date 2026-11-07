@@ -117,3 +117,25 @@
 @media(max-width:780px){.games-entry-section{padding:58px 12px 72px}.games-entry-card{padding:26px 22px;align-items:flex-start;flex-direction:column}.games-screen>.games-container{width:calc(100% - 20px);padding:16px}.games-float-jump{right:16px;bottom:18px;width:56px;height:56px}}
 @media(max-width:520px){.games-subpage-header{gap:7px}.games-subpage-header>.button{font-size:9px;padding:8px}}
 @media(prefers-reduced-motion:reduce){.games-float-jump,.games-entry-card{transition:none}.games-entry-section.reveal-ready:not(.is-visible) .games-entry-card{opacity:1;transform:none}.games-entry-section.is-visible .games-entry-card,.games-entry-section.is-visible .games-entry-copy,.games-entry-section.is-visible #gamesExploreButton{animation:none}}
+
+
+/* Brazilly Streaming: prévia da próxima área social */
+.streaming-entry-section{position:relative;isolation:isolate;overflow:hidden;padding:34px 24px 96px;background:linear-gradient(180deg,#151824 0%,#11141e 100%)}
+.streaming-entry-section:before{content:"";position:absolute;top:0;left:50%;width:min(460px,64%);height:1px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,#9c88ff88,transparent);pointer-events:none}
+.streaming-entry-card{position:relative;width:min(1120px,100%);min-height:260px;margin:0 auto;padding:38px 42px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr);align-items:center;gap:34px;border:1px solid #8d7be344;border-radius:24px;background:linear-gradient(120deg,#1b2030,#211d36 75%);box-shadow:0 20px 65px #0003}
+.streaming-entry-copy h2{max-width:620px;margin:9px 0 12px;font-size:clamp(23px,3vw,32px);line-height:1.2;letter-spacing:-.7px}
+.streaming-entry-copy p{max-width:600px;margin:0;color:var(--muted);font-size:13px;line-height:1.75}
+.streaming-feature-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.streaming-feature-list span{padding:7px 10px;border:1px solid #a99aff25;border-radius:999px;background:#a99aff0c;color:#c9c0ed;font-size:10px}
+.streaming-preview{padding:12px;border:1px solid #a99aff30;border-radius:18px;background:#0e111a;box-shadow:0 12px 35px #0003;transform:rotate(1deg)}
+.streaming-preview-screen{min-height:145px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border:1px solid #a99aff25;border-radius:11px;background:radial-gradient(circle at 50% 45%,#8068ed35,transparent 45%),linear-gradient(145deg,#24233b,#111722)}
+.streaming-play-mark{width:48px;height:48px;display:grid;place-items:center;padding-left:3px;border:1px solid #c9bcff88;border-radius:50%;background:#8068ed55;color:#eee8ff;font-size:17px}
+.streaming-screen-label{color:#bdb3e8;font-size:8px;letter-spacing:1.6px}
+.streaming-viewers{display:flex;align-items:center;gap:6px;padding:12px 2px 1px;color:#b9a9ff}
+.streaming-viewers span{width:21px;height:21px;display:grid;place-items:center;border:2px solid #171b28;border-radius:50%;background:linear-gradient(145deg,#9a82ff,#654bd4);font-size:7px;color:#fff}
+.streaming-viewers span:nth-child(2){margin-left:-10px;background:linear-gradient(145deg,#e49a9a,#9b5b85)}
+.streaming-viewers span:nth-child(3){margin-left:-10px;background:linear-gradient(145deg,#77c6ba,#347f88)}
+.streaming-viewers small{margin-left:5px;color:var(--muted);font-size:10px}
+.streaming-coming-soon{position:absolute;top:18px;right:18px;padding:7px 11px;border:1px solid #b7a5ff66;border-radius:999px;background:#8068ed26;color:#d6ceff;font-size:9px;font-weight:800;letter-spacing:1.1px}
+@media(max-width:780px){.streaming-entry-section{padding:26px 12px 72px}.streaming-entry-card{grid-template-columns:1fr;padding:54px 22px 24px;gap:22px}.streaming-preview{max-width:420px;width:100%;margin:0 auto}.streaming-coming-soon{top:14px;right:14px}}
+@media(prefers-reduced-motion:no-preference){.streaming-entry-card{transition:border-color .3s ease,transform .3s ease}.streaming-entry-card:hover{transform:translateY(-3px);border-color:#a99aff77}}
