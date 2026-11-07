@@ -374,3 +374,38 @@
  .profile-detail-card:has(.profile-public-customization) .profile-social-actions,
  .profile-detail-card:has(.profile-public-customization)>#startConversationButton{margin:14px}
 }
+
+
+/* Animated profile environments: native looping media behind all interactive layers */
+.profile-world-stage-2d{background:#17142a}
+.profile-world-art-layer{overflow:hidden;background:#17142a}
+.profile-world-animated-background{
+ position:absolute;inset:0;width:100%;height:100%;display:block;
+ object-fit:cover;object-position:center;pointer-events:none;
+}
+.profile-world-art-layer:has(.profile-world-animated-background) .illustrated-room-art{display:none}
+.profile-world-art-layer:has(.profile-world-animated-background){z-index:0}
+.profile-world-stage-2d:has(.profile-world-animated-background) .profile-world-parallax-layer{z-index:3}
+.profile-world-stage-2d:has(.profile-world-animated-background) .profile-world-weather{z-index:4}
+.profile-world-stage-2d:has(.profile-world-animated-background) .profile-world-objects{z-index:5}
+.profile-scene-upload{
+ display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;
+ padding:16px;border:1px solid rgba(216,190,255,.2);border-radius:16px;
+ background:linear-gradient(130deg,rgba(113,76,164,.14),rgba(45,37,69,.34))
+}
+.profile-scene-upload>div{display:grid;gap:4px}
+.profile-scene-upload strong{color:#f5edff;font-size:14px}
+.profile-scene-upload small{color:#bdb0d3;font-size:11px;line-height:1.5}
+.profile-scene-file-button{
+ display:inline-flex;align-items:center;justify-content:center;padding:10px 15px;
+ border:1px solid #c9a6ff66;border-radius:12px;background:#9360e8;color:white;
+ font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap
+}
+.profile-scene-file-button:hover{background:#a878f5}
+#worldSceneRemove:disabled{opacity:.4;cursor:not-allowed}
+#worldSceneStatus{grid-column:1/-1;min-height:14px;color:#d5c3ed;font-size:11px}
+@media(max-width:680px){
+ .profile-scene-upload{grid-template-columns:1fr 1fr}
+ .profile-scene-upload>div,#worldSceneStatus{grid-column:1/-1}
+ .profile-scene-file-button{font-size:11px}
+}
