@@ -60,6 +60,20 @@ $$;
 revoke all on function public.get_or_create_conversation(uuid) from public;
 grant execute on function public.get_or_create_conversation(uuid) to authenticated;
 
+create or replace function public.is_blocked_between(p_user_a uuid,p_user_b uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $
+  select exists(select 1 from public.user_blocks
+    where (blocker_id=p_user_a and blocked_id=p_user_b)
+       or (blocker_id=p_user_b and blocked_id=p_user_a));
+$;
+revoke all on function public.is_blocked_between(uuid,uuid) from public;
+grant execute on function public.is_blocked_between(uuid,uuid) to authenticated;
+
 alter table public.conversations enable row level security;
 alter table public.messages enable row level security;
 
@@ -67,9 +81,7 @@ drop policy if exists conversations_read_participant on public.conversations;
 create policy conversations_read_participant on public.conversations
 for select to authenticated using (
   (auth.uid()=user_one or auth.uid()=user_two)
-  and not exists(select 1 from public.user_blocks b where
-    (b.blocker_id=auth.uid() and b.blocked_id=case when auth.uid()=user_one then user_two else user_one end)
-    or (b.blocker_id=case when auth.uid()=user_one then user_two else user_one end and b.blocked_id=auth.uid()))
+  and not public.is_blocked_between(user_one,user_two)
 );
 
 drop policy if exists messages_read_participant on public.messages;
@@ -77,9 +89,8 @@ create policy messages_read_participant on public.messages
 for select to authenticated using (
   exists(select 1 from public.conversations c where c.id=conversation_id
     and (auth.uid()=c.user_one or auth.uid()=c.user_two))
-  and not exists(select 1 from public.conversations c join public.user_blocks b
-    on (b.blocker_id=c.user_one and b.blocked_id=c.user_two) or (b.blocker_id=c.user_two and b.blocked_id=c.user_one)
-    where c.id=conversation_id)
+  and exists(select 1 from public.conversations c where c.id=conversation_id
+    and not public.is_blocked_between(c.user_one,c.user_two))
 );
 
 drop policy if exists messages_send_as_self on public.messages;
@@ -88,9 +99,8 @@ for insert to authenticated with check (
   sender_id=auth.uid()
   and exists(select 1 from public.conversations c where c.id=conversation_id
     and (auth.uid()=c.user_one or auth.uid()=c.user_two))
-  and not exists(select 1 from public.conversations c join public.user_blocks b
-    on (b.blocker_id=c.user_one and b.blocked_id=c.user_two) or (b.blocker_id=c.user_two and b.blocked_id=c.user_one)
-    where c.id=conversation_id)
+  and exists(select 1 from public.conversations c where c.id=conversation_id
+    and not public.is_blocked_between(c.user_one,c.user_two))
 );
 
 drop policy if exists messages_mark_received_read on public.messages;
