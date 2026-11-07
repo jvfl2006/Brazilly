@@ -14,7 +14,8 @@
   let loading = false;
 
   const screen = document.getElementById('gamesScreen');
-  if (!screen || document.getElementById('gamesEntry')) return;
+  if (!screen || screen.dataset.initialized === 'true') return;
+  screen.dataset.initialized = 'true';
   screen.innerHTML = `
     <div class="games-container">
       <header class="inner-header games-page-header">
