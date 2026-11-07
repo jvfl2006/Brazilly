@@ -105,8 +105,8 @@ begin
 end;
 $leave_random_chat$;
 
-revoke all on function public.find_random_chat() from public;
-revoke all on function public.leave_random_chat(uuid) from public;
+revoke all on function public.find_random_chat() from anon, public;
+revoke all on function public.leave_random_chat(uuid) from anon, public;
 grant execute on function public.find_random_chat() to authenticated;
 grant execute on function public.leave_random_chat(uuid) to authenticated;
 
@@ -172,7 +172,7 @@ begin
  return v_id;
 end;
 $create_community$;
-revoke all on function public.create_community(text,text,text) from public;
+revoke all on function public.create_community(text,text,text) from anon, public;
 grant execute on function public.create_community(text,text,text) to authenticated;
 
 -- Publicação Realtime: adiciona apenas tabelas de mensagens, sem duplicar entradas.
