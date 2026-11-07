@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
   if(authError||!authData.user)return reply({error:"Sua sessão expirou. Entre novamente."},401);
   const user=authData.user,admin=createClient(url,secretKey,{auth:{persistSession:false,autoRefreshToken:false}});
   const {data:profile}=await admin.from("profiles").select("display_name").eq("user_id",user.id).maybeSingle();
-  const displayName=cleanName(profile?.display_name,user.email?.split("@")[0]??"Jogador");
+  const displayName=cleanName(profile?.display_name,"Jogador");
   const input=await req.json(),action=String(input?.action??"");
 
   if(action==="list_rooms"){
@@ -93,6 +93,28 @@ Deno.serve(async (req: Request) => {
    if(!member||!["white","black"].includes(member.seat))return reply({error:"Somente jogadores podem abandonar a partida."},403);if(!game)return reply({error:"Não existe uma partida ativa."},404);
    const winner=member.seat==="white"?"black":"white";const {data:updated,error}=await admin.from("chess_games").update({status:"resigned",winner,updated_at:new Date().toISOString()}).eq("id",game.id).eq("ply",game.ply).eq("status","active").select("*").maybeSingle();if(error)throw error;if(!updated)return reply({error:"A partida já foi atualizada. Atualize a sala."},409);
    await admin.from("chess_rooms").update({status:"open",updated_at:new Date().toISOString()}).eq("id",roomId);return reply({game:updated});
+  }
+  if(action==="leave_room"){
+   const roomId=String(input?.room_id??"");
+   const {data:member,error:me}=await admin.from("chess_room_members").select("*").eq("room_id",roomId).eq("user_id",user.id).maybeSingle();if(me)throw me;if(!member)return reply({ok:true});
+   if(["white","black"].includes(member.seat)){
+    const {data:game,error:ge}=await admin.from("chess_games").select("*").eq("room_id",roomId).eq("status","active").maybeSingle();if(ge)throw ge;
+    if(game){const winner=member.seat==="white"?"black":"white";const {error}=await admin.from("chess_games").update({status:"resigned",winner,updated_at:new Date().toISOString()}).eq("id",game.id).eq("ply",game.ply).eq("status","active");if(error)throw error;}
+   }
+   const {error:deleteError}=await admin.from("chess_room_members").delete().eq("room_id",roomId).eq("user_id",user.id);if(deleteError)throw deleteError;
+   if(member.role==="host"){
+    const {data:remaining,error:remainingError}=await admin.from("chess_room_members").select("user_id,seat").eq("room_id",roomId).order("joined_at",{ascending:true});if(remainingError)throw remainingError;
+    if(!remaining?.length){await admin.from("chess_rooms").update({status:"closed",updated_at:new Date().toISOString()}).eq("id",roomId);}
+    else{
+     const next=remaining[0],seats=new Set(remaining.map(m=>m.seat));let nextSeat=next.seat;
+     if(!seats.has("white"))nextSeat="white";else if(!seats.has("black"))nextSeat="black";
+     const {error}=await admin.from("chess_room_members").update({role:"host",seat:nextSeat}).eq("room_id",roomId).eq("user_id",next.user_id);if(error)throw error;
+     await admin.from("chess_rooms").update({status:"open",updated_at:new Date().toISOString()}).eq("id",roomId);
+    }
+   }else{
+    await admin.from("chess_rooms").update({status:"open",updated_at:new Date().toISOString()}).eq("id",roomId);
+   }
+   return reply({ok:true});
   }
   if(action==="send_message"){
    const roomId=String(input?.room_id??""),body=String(input?.body??"").trim();if(body.length<1||body.length>1000)return reply({error:"A mensagem precisa ter entre 1 e 1.000 caracteres."},400);
