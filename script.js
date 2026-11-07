@@ -14,6 +14,10 @@ let currentUser = null;
 let currentProfile = null;
 let authReady = false;
 
+function updateHeaderAccountButtons(){
+  $('signupButton').hidden=Boolean(currentProfile);
+  $('loginButton').textContent=currentUser?(currentProfile?'Minha conta':'Completar perfil'):'Entrar';
+}
 function showScreen(id) {
   screens.forEach(s => s.classList.toggle('active', s.id === id));
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -186,7 +190,7 @@ async function saveProfile(){
       currentUser=data.user;
     }
     await syncProfileToSupabase(p);
-    $('profilePassword').value='';editingProfile=false;alert('Perfil salvo e sincronizado com sua conta Brazilly.');showScreen('profileScreen');
+    $('profilePassword').value='';editingProfile=false;updateHeaderAccountButtons();alert('Perfil salvo e sincronizado com sua conta Brazilly.');showScreen('profileScreen');
   }catch(error){console.error(error);alert(`Não foi possível salvar seu perfil: ${error.message||'erro desconhecido'}. Confira sua conexão e tente novamente.`);}
   finally{$('wizardNext').disabled=false;setWizardStep(wizardStep);}
 }
@@ -213,24 +217,25 @@ async function initAuth(){
   if(!db){alert('A biblioteca do Supabase não carregou. Atualize a página e tente novamente.');return;}
   const {data:{session}}=await db.auth.getSession();currentUser=session?.user||null;
   if(currentUser){try{await fetchProfileFromServer();const pending=sessionStorage.getItem('brazilly.pendingProfile');if(pending){const draft=JSON.parse(pending);await syncProfileToSupabase(draft);sessionStorage.removeItem('brazilly.pendingProfile');} }catch(error){console.error('Falha ao carregar perfil:',error);}}
+  updateHeaderAccountButtons();
   authReady=true;
   db.auth.onAuthStateChange((event,sessionNow)=>{
     currentUser=sessionNow?.user||null;
-    if(!currentUser){currentProfile=null;$('loginButton').textContent='Entrar';renderProfiles();return;}
+    if(!currentUser){currentProfile=null;updateHeaderAccountButtons();renderProfiles();return;}
     if(event==='PASSWORD_RECOVERY'){
       setTimeout(async()=>{const next=prompt('Digite sua nova senha (mínimo de 8 caracteres):');if(next&&next.length>=8){const {error}=await db.auth.updateUser({password:next});alert(error?error.message:'Senha atualizada com sucesso.');}else if(next!==null){alert('A senha precisa ter pelo menos 8 caracteres.');}},0);
     }
-    setTimeout(async()=>{try{await fetchProfileFromServer();$('loginButton').textContent='Minha conta';renderProfiles();}catch(error){console.error(error);}},0);
+    setTimeout(async()=>{try{await fetchProfileFromServer();updateHeaderAccountButtons();renderProfiles();}catch(error){console.error(error);}},0);
   });
   if(currentUser&&currentProfile){$('loginButton').textContent='Minha conta';}renderProfiles();
 }
-$('loginForm').addEventListener('submit',async e=>{e.preventDefault();if(!db){alert('O serviço de autenticação não carregou. Atualize a página.');return;}const button=$('loginSubmit');button.disabled=true;button.textContent='Entrando...';try{const {data,error}=await db.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});if(error)throw error;currentUser=data.user;await fetchProfileFromServer();const pending=sessionStorage.getItem('brazilly.pendingProfile');if(pending){await syncProfileToSupabase(JSON.parse(pending));sessionStorage.removeItem('brazilly.pendingProfile');}closeModal('loginModal');$('loginPassword').value='';$('loginButton').textContent='Minha conta';if(currentProfile){renderProfilePreview();showScreen('profileScreen');}else{alert('Conta autenticada. Complete seu perfil.');clearWizard();$('profileEmail').value=currentUser.email||'';$('profileEmail').readOnly=true;showScreen('authScreen');}}catch(error){alert(`Não foi possível entrar: ${error.message}`);}finally{button.disabled=false;button.textContent='Entrar';}});
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();if(!db){alert('O serviço de autenticação não carregou. Atualize a página.');return;}const button=$('loginSubmit');button.disabled=true;button.textContent='Entrando...';try{const {data,error}=await db.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});if(error)throw error;currentUser=data.user;await fetchProfileFromServer();const pending=sessionStorage.getItem('brazilly.pendingProfile');if(pending){await syncProfileToSupabase(JSON.parse(pending));sessionStorage.removeItem('brazilly.pendingProfile');}closeModal('loginModal');$('loginPassword').value='';updateHeaderAccountButtons();if(currentProfile){renderProfilePreview();showScreen('profileScreen');}else{alert('Conta autenticada. Complete seu perfil.');clearWizard();$('profileEmail').value=currentUser.email||'';$('profileEmail').readOnly=true;showScreen('authScreen');}}catch(error){alert(`Não foi possível entrar: ${error.message}`);}finally{button.disabled=false;button.textContent='Entrar';}});
 $('forgotPasswordButton').addEventListener('click',async()=>{if(!db){alert('O serviço de autenticação não carregou.');return;}const email=$('loginEmail').value.trim();if(!email){alert('Informe seu e-mail primeiro.');return;}const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});if(error)alert(error.message);else alert('Se o endereço estiver cadastrado, você receberá um e-mail para redefinir a senha.');});
 async function renderProfilePreview(){const p=currentProfile,root=$('profilePreview');root.innerHTML='';if(!p){root.textContent='Entre na sua conta para carregar seu perfil.';return;}const h=document.createElement('h2');h.textContent=`${p.name}${p.showAge?`, ${p.age}`:''}`;root.append(h);if(p.showCity&&p.city){const c=document.createElement('p');c.className='field-note';c.textContent=p.city;root.append(c);}if(p.photos?.length){const photosEl=document.createElement('div');photosEl.className='preview-photos';p.photos.forEach(ph=>{const img=document.createElement('img');img.src=ph.data;img.alt='Foto do perfil';photosEl.append(img);});root.append(photosEl);}if(p.bio){const bio=document.createElement('p');bio.textContent=p.bio;root.append(bio);}const fields=[['Gênero',p.gender],['Signo',p.zodiac],['Altura',p.height?`${p.height} cm`:'' ],['Escolaridade',p.education],['Profissão',p.profession],['Religião / crença',p.religion],['Relacionamento',p.relationshipStatus],['Personalidade',p.personality],['Pets',p.pets],['Filhos',p.children],['Intenções',p.intentions?.join(', ')]];fields.filter(x=>x[1]).forEach(([k,v])=>{const row=document.createElement('p');row.className='field-note';row.textContent=`${k}: ${v}`;root.append(row);});if(p.interests?.length){const title=document.createElement('h3');title.textContent='Interesses';root.append(title);const tags=document.createElement('div');tags.className='preview-tags';p.interests.forEach(x=>{const tag=document.createElement('span');tag.textContent=x;tags.append(tag);});root.append(tags);}}
 async function editProfile(){let p=currentProfile;if(!p&&currentUser)p=await fetchProfileFromServer();if(!p){alert('Entre na sua conta para editar o perfil.');return;}editingProfile=true;$('profileName').value=p.name||'';$('profileEmail').value=p.email||'';$('profileEmail').readOnly=true;$('profilePassword').value='';$('birthDate').value=p.birthDate||'';['gender','sexuality','height','education','personality','pets','children','bio','drinkFrequency','smokeFrequency','exerciseFrequency','city'].forEach((id,i)=>{const keys=['gender','sexuality','height','education','personality','pets','children','bio','drink','smoke','exercise','city'];$(id).value=p[keys[i]]||'';});$('profession').value=p.profession||'';$('religion').value=p.religion||'';$('relationshipStatus').value=p.relationshipStatus||'';$('zodiac').value=p.zodiac||'';$('showAge').checked=p.showAge!==false;$('showCity').checked=p.showCity===true;selectedInterests=new Set(p.interests||[]);photos=p.photos||[];renderPhotos();renderInterestCategories();renderSelectedInterests();$('intentOptions').querySelectorAll('input').forEach(x=>x.checked=(p.intentions||[]).includes(x.value));setWizardStep(0);showScreen('authScreen');}
 $('editProfileButton').addEventListener('click',editProfile);$('profileEditButton').addEventListener('click',editProfile);
 $('exportDataButton').addEventListener('click',()=>{const p=currentProfile;if(!p){alert('Entre na sua conta primeiro.');return;}const blob=new Blob([JSON.stringify({...p,photos:[]},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='meu-perfil-brazilly.json';a.click();URL.revokeObjectURL(url);});
-$('logoutButton').addEventListener('click',async()=>{if(!confirm('Deseja sair da sua conta Brazilly neste dispositivo?'))return;const {error}=await db.auth.signOut();if(error){alert(error.message);return;}currentUser=null;currentProfile=null;$('loginButton').textContent='Entrar';showScreen('homeScreen');alert('Você saiu da sua conta.');});
+$('logoutButton').addEventListener('click',async()=>{if(!confirm('Deseja sair da sua conta Brazilly neste dispositivo?'))return;const {error}=await db.auth.signOut();if(error){alert(error.message);return;}currentUser=null;currentProfile=null;updateHeaderAccountButtons();showScreen('homeScreen');alert('Você saiu da sua conta.');});
 // Preferências locais. Recursos que exigem servidor são descritos sem simular execução.
 const defaultSettings={theme:'dark',wallpaper:'default',lastSeen:true,online:true,readReceipt:true,mediaDownload:'never'};
 function readSettings(){try{return {...defaultSettings,...JSON.parse(localStorage.getItem(STORAGE.settings)||'{}')};}catch{return {...defaultSettings};}}
@@ -266,6 +271,20 @@ let activeConversationChannel = null;
 let activeConversationOtherUserId = null;
 const messageCache = new Set();
 
+async function updateFriendRequestButton(otherUserId){
+  const button=$('friendRequestButton');
+  if(!button)return;
+  button.disabled=true;button.textContent='Verificando...';
+  if(!currentUser){button.disabled=false;button.textContent='Adicionar amigo';return;}
+  try{
+    const {data,error}=await db.rpc('get_friendship_status',{p_other_user:otherUserId});
+    if(error)throw error;
+    button.dataset.status=data||'none';
+    const labels={none:'Adicionar amigo',sent:'Cancelar pedido',received:'Aceitar pedido',friends:'✓ Amigos',blocked:'Indisponível'};
+    button.textContent=labels[data]||labels.none;
+    button.disabled=data==='friends'||data==='blocked';
+  }catch(error){button.textContent='Amizade indisponível';button.disabled=true;console.warn(error);}
+}
 function openProfileDetails(p) {
   selectedPublicProfile = p;
   const root = $('profileDetailContent');
@@ -289,6 +308,7 @@ function openProfileDetails(p) {
   if (p.intentions?.length) { const h=document.createElement('h3');h.textContent='O que procura';root.append(h);const v=document.createElement('p');v.className='field-note';v.textContent=p.intentions.join(' · ');root.append(v); }
   if (p.interests?.length) { const h=document.createElement('h3');h.textContent='Interesses';root.append(h);const tags=document.createElement('div');tags.className='preview-tags';p.interests.forEach(name=>{const tag=document.createElement('span');tag.textContent=name;tags.append(tag);});root.append(tags); }
   openModal('profileDetailModal');
+  updateFriendRequestButton(p.user_id);
   $('favoriteProfileButton').textContent='☆ Favoritar';
   if(currentUser){
     db.from('user_favorites').select('target_user_id').eq('user_id',currentUser.id).eq('target_user_id',p.user_id).maybeSingle()
@@ -296,6 +316,28 @@ function openProfileDetails(p) {
       .catch(error=>console.warn('Não foi possível consultar favorito:',error));
   }
 }
+$('friendRequestButton').addEventListener('click',async()=>{
+  if(!currentUser||!selectedPublicProfile){openModal('loginModal');return;}
+  const button=$('friendRequestButton'),status=button.dataset.status,requestId=button.dataset.requestId;
+  button.disabled=true;
+  try{
+    if(status==='none')await db.rpc('send_friend_request',{p_other_user:selectedPublicProfile.user_id});
+    else if(status==='sent'){
+      const {data:rows,error}=await db.from('friend_requests').select('id').eq('user_one',selectedPublicProfile.user_id<currentUser.id?selectedPublicProfile.user_id:currentUser.id).eq('user_two',selectedPublicProfile.user_id<currentUser.id?currentUser.id:selectedPublicProfile.user_id).eq('status','pending').eq('requested_by',currentUser.id).limit(1);
+      if(error)throw error;
+      if(!rows?.length)throw new Error('Pedido não encontrado.');
+      await db.rpc('cancel_friend_request',{p_request_id:rows[0].id});
+    }else if(status==='received'){
+      const {data:rows,error}=await db.from('friend_requests').select('id').eq('user_one',selectedPublicProfile.user_id<currentUser.id?selectedPublicProfile.user_id:currentUser.id).eq('user_two',selectedPublicProfile.user_id<currentUser.id?currentUser.id:selectedPublicProfile.user_id).eq('status','pending').neq('requested_by',currentUser.id).limit(1);
+      if(error)throw error;
+      if(!rows?.length)throw new Error('Pedido não encontrado.');
+      await db.rpc('respond_friend_request',{p_request_id:rows[0].id,p_accept:true});
+    }
+    await updateFriendRequestButton(selectedPublicProfile.user_id);
+    await renderFriendRequests();
+  }catch(error){alert('Não foi possível atualizar o pedido: '+error.message);}
+  finally{button.disabled=false;}
+});
 $('favoriteProfileButton').addEventListener('click', async () => {
   if (!currentUser || !selectedPublicProfile) { openModal('loginModal'); return; }
   const button=$('favoriteProfileButton'), target=selectedPublicProfile.user_id;
@@ -435,11 +477,29 @@ async function startDirectConversation(otherUserId, otherName) {
     button.textContent = '✉ Enviar mensagem';
   }
 }
+async function renderFriendRequests(){
+  const root=$('friendRequestsList');if(!root||!currentUser)return;
+  root.innerHTML='';
+  const {data:rows,error}=await db.rpc('list_my_friend_requests');
+  if(error){root.textContent='Não foi possível carregar pedidos: '+error.message;return;}
+  if(!rows?.length){root.textContent='Nenhum pedido pendente.';return;}
+  for(const row of rows){
+    const item=document.createElement('div');item.className='friend-request-item';
+    const name=document.createElement('strong');name.textContent=row.display_name||'Usuário';
+    const actions=document.createElement('div');actions.className='friend-request-actions';
+    const accept=document.createElement('button');accept.type='button';accept.className='button button-small button-primary';accept.textContent='Aceitar';
+    const decline=document.createElement('button');decline.type='button';decline.className='button button-small button-outline';decline.textContent='Recusar';
+    accept.addEventListener('click',async()=>{const {error}=await db.rpc('respond_friend_request',{p_request_id:row.request_id,p_accept:true});if(error)alert(error.message);else{await renderFriendRequests();if(selectedPublicProfile?.user_id===row.requester_id)updateFriendRequestButton(row.requester_id);}});
+    decline.addEventListener('click',async()=>{const {error}=await db.rpc('respond_friend_request',{p_request_id:row.request_id,p_accept:false});if(error)alert(error.message);else{await renderFriendRequests();if(selectedPublicProfile?.user_id===row.requester_id)updateFriendRequestButton(row.requester_id);}});
+    actions.append(accept,decline);item.append(name,actions);root.append(item);
+  }
+}
 async function renderConversationList() {
   const root = $('conversationList');
   if (!root) return;
   root.innerHTML = '';
   if (!currentUser) { root.textContent = 'Entre na sua conta para ver suas conversas.'; return; }
+  await renderFriendRequests();
   const {data:rows,error} = await db.rpc('list_my_conversations');
   if (error) { root.textContent = 'Não foi possível carregar conversas: ' + error.message; return; }
   if (!rows?.length) { root.textContent = 'Você ainda não iniciou nenhuma conversa. Abra um perfil para mandar a primeira mensagem.'; return; }
