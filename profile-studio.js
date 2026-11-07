@@ -276,7 +276,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     const dist=Math.max(10,5.4/(Math.tan(T.MathUtils.degToRad(19))*Math.min(aspect,1.55)));
     world.scale.set(portrait?.78:1,1,1);
     camera.position.set(portrait?0:dist*.43,portrait?dist*.34:dist*.37,portrait?dist:dist*.91);
-    camera.lookAt(0,1.38,-.1);camera.updateProjectionMatrix();
+    camera.lookAt(0,1.38,-.1);camera.updateProjectionMatrix();baseCameraPosition.copy(camera.position);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,settings.theme==='pixel'?1:1.5));
     renderer.setSize(Math.round(w*(settings.theme==='pixel'?.58:1)),Math.round(h*(settings.theme==='pixel'?.58:1)),false);
     if(reducedMotion&&renderer.domElement.isConnected)renderer.render(scene,camera);
