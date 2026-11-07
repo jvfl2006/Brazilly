@@ -46,7 +46,7 @@ function normalize(raw) {
     }))
   };
   if(!value.room.items.length)value.room.items=defaultItems();
-  value.widgets = Array.isArray(value.widgets) ? value.widgets.filter(x => x !== 'mascot') : [...defaults.widgets];
+  value.widgets = Array.isArray(value.widgets) ? value.widgets.filter(x => defaults.widgets.includes(x)) : [...defaults.widgets];
   value.quote = String(value.quote||'').slice(0,180);
   value.music = String(value.music||'').slice(0,100);
   value.musicUrl = String(value.musicUrl||'').slice(0,500);
