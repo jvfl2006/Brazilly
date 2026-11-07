@@ -368,7 +368,7 @@ function addMessageToView(message) {
   const time = document.createElement('time');
   time.dateTime = message.created_at;
   time.textContent = new Date(message.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-  bubble.append(body,time);
+  bubble.append(time);
   root.append(bubble);
   root.scrollTop = root.scrollHeight;
 }
@@ -528,7 +528,7 @@ async function sendChatMedia(blob,type,mime){
 async function handleChatImage(file,type){
   if(!file)return;
   const quality=Number($('chatImageQuality').value);
-  const blob=await compressChatImage(file,quality);
+  const blob=(type==='sticker')?file:await compressChatImage(file,quality);
   const mime=blob.type||file.type;
   await sendChatMedia(blob,type,mime);
 }
@@ -546,10 +546,7 @@ $('chatGifInput').addEventListener('change',async e=>{
 const emojis=['😀','😂','🥹','😍','😎','🤔','😭','😡','🤝','👍','👎','❤️','🔥','🎉','💀','🤡','🚀','🐸','🐱','🏍️','⚙️','🍕','☕','✨'];
 emojis.forEach(emoji=>{
   const button=document.createElement('button');button.type='button';button.textContent=emoji;button.setAttribute('aria-label','Inserir '+emoji);
-  button.addEventListener('click',()=>{$('directMessageInput').value+='';
-    $('directMessageInput').value+=$('directMessageInput').value?emoji:emoji;
-    $('directMessageInput').focus();
-  });
+  button.addEventListener('click',()=>{$('directMessageInput').value+='' ;$('directMessageInput').value += emoji;$('directMessageInput').focus();});
   $('emojiTray').append(button);
 });
 $('emojiToggle').addEventListener('click',()=>{$('emojiTray').hidden=!$('emojiTray').hidden;});
