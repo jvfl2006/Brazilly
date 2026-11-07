@@ -226,8 +226,9 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
       box(g,'frame-wood',[0,2.25,0],[1.18,.9,.12],wood);
       box(g,'frame-paper',[0,2.25,.075],[1.0,.72,.025],item.type==='poster'?mats.accent:cream,{shadow:false});
       if(item.type==='frame'){
-        sphere(g,[-.18,2.32,.1],[.19,.19,.035],mats.bookB,14);
-        box(g,'frame-landscape',[.16,2.14,.1],[.54,.2,.025],mats.plant,{shadow:false});
+        const photoMaterial=new T.MeshBasicMaterial({color:'#ffffff'});
+        const photoPlane=new T.Mesh(new T.PlaneGeometry(.76,.54),photoMaterial);photoPlane.position.set(0,2.25,.112);g.add(photoPlane);
+        if(photos[0])new T.TextureLoader().load(photos[0],texture=>{texture.colorSpace=T.SRGBColorSpace;photoMaterial.map=texture;photoMaterial.needsUpdate=true;},undefined,()=>{});
       }else{
         sphere(g,[0,2.28,.11],[.26,.26,.025],mats.bookB,12);
       }
@@ -254,6 +255,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   const selectionRing=new T.Mesh(new T.TorusGeometry(.72,.035,8,40),new T.MeshBasicMaterial({color:settings.accent,transparent:true,opacity:.95}));
   selectionRing.rotation.x=Math.PI/2;selectionRing.visible=false;world.add(selectionRing);
   const raycaster=new T.Raycaster(),pointer=new T.Vector2(),groundPlane=new T.Plane(new T.Vector3(0,1,0),0),hitPoint=new T.Vector3();
+  const parallax={x:0,y:0},baseCameraPosition=camera.position.clone(),reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const state={editing:false,selectedId:null,pendingType:null,dragging:false,pointerId:null,raf:0,stopped:false};
   const aspectCamera=()=>{
     const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight),aspect=w/h;
@@ -339,6 +341,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   }
   function onPointerMove(event){
     if(state.stopped||event.target!==renderer.domElement)return;
+    if(!reducedMotion){const rect=stage.getBoundingClientRect();parallax.x=((event.clientX-rect.left)/rect.width-.5)*2;parallax.y=((event.clientY-rect.top)/rect.height-.5)*2;}
     if(state.dragging&&event.pointerId===state.pointerId){
       canvasPoint(event);
       if(raycaster.ray.intersectPlane(groundPlane,hitPoint))moveSelected(hitPoint.x,hitPoint.z);
@@ -357,6 +360,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   stage.addEventListener('pointermove',onPointerMove,{passive:false});
   stage.addEventListener('pointerup',onPointerUp);
   stage.addEventListener('pointercancel',onPointerUp);
+  stage.addEventListener('pointerleave',()=>{parallax.x=0;parallax.y=0;});
   function addItem(type,x=0,z=0){
     if(!itemTypes.includes(type)||settings.room.items.length>=24)return;
     const item={id:'room-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),type,x:Math.max(-4.6,Math.min(4.6,x)),z:Math.max(-2.8,Math.min(2.8,z)),rotation:0};
@@ -424,7 +428,8 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     if(state.stopped||!renderer.domElement.isConnected){dispose();return;}
     state.raf=requestAnimationFrame(animate);
     if(document.hidden)return;
-    const t=window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:performance.now()*.001;
+    const t=reducedMotion?0:performance.now()*.001;
+    if(!reducedMotion){camera.position.x+=(baseCameraPosition.x+parallax.x*.24-camera.position.x)*.025;camera.position.y+=(baseCameraPosition.y-parallax.y*.13-camera.position.y)*.025;camera.lookAt(parallax.x*.13,1.38-parallax.y*.06,-.1);}
     dust.rotation.y=Math.sin(t*.08)*.1;
     sun.position.y=.64+Math.sin(t*.12)*.05;
     lampGlow.intensity=1.0+Math.sin(t*1.7)*.08;
