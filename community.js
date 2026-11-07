@@ -58,7 +58,7 @@
   }
   async function openCommunity(group){
     communityId=group.id;if(communityChannel)db.removeChannel(communityChannel);if(communityReadChannel)db.removeChannel(communityReadChannel);
-    el('communityDirectory').hidden=true;el('communityRoom').hidden=false;setText('communityRoomTitle',group.name);setText('communityRoomDescription',group.description||group.category||'Comunidade Brazilly');
+    el('communityDirectory').hidden=true;el('communityRoom').hidden=false;setText('communityRoomTitle',group.name);const {data:memberRows}=await db.from('community_members').select('user_id').eq('community_id',group.id);setText('communityRoomDescription',(memberRows||[]).length+' participantes · '+(group.description||group.category||'Comunidade Brazilly'));
     await refreshCommunityMessages(true);
     communityChannel=db.channel('community-'+communityId).on('postgres_changes',{event:'INSERT',schema:'public',table:'community_messages',filter:'community_id=eq.'+communityId},()=>refreshCommunityMessages(true)).subscribe();
     communityReadChannel=db.channel('community-reads-'+communityId).on('postgres_changes',{event:'INSERT',schema:'public',table:'community_message_reads',filter:'community_id=eq.'+communityId},()=>refreshCommunityMessages(false)).subscribe();
