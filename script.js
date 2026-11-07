@@ -70,6 +70,52 @@ function renderInterestCategories(query = '') {
 function renderSelectedInterests() { const root = $('selectedInterests'); root.innerHTML = ''; if (!selectedInterests.size) { root.textContent = 'Nenhum interesse selecionado.'; return; } root.append(document.createTextNode(`${selectedInterests.size} interesses selecionados: `)); [...selectedInterests].forEach(item => { const b=document.createElement('button'); b.type='button'; b.className='interest-chip selected'; b.textContent=`× ${item}`; b.title='Remover interesse'; b.addEventListener('click',()=>{selectedInterests.delete(item);renderInterestCategories($('interestSearch').value);renderSelectedInterests();});root.append(b); }); }
 $('interestSearch').addEventListener('input', e => renderInterestCategories(e.target.value));
 renderInterestCategories(); renderSelectedInterests();
+
+$('addCustomInterest').addEventListener('click', () => {
+  const input = $('customInterestInput');
+  const value = input.value.trim().replace(/\\s+/g, ' ');
+  if (!value) { input.focus(); return; }
+  if (value.length > 50) { alert('O interesse deve ter no máximo 50 caracteres.'); return; }
+  const duplicate = [...selectedInterests].some(x => x.toLocaleLowerCase('pt-BR') === value.toLocaleLowerCase('pt-BR'));
+  if (duplicate) { alert('Esse interesse já foi adicionado.'); return; }
+  selectedInterests.add(value);
+  input.value = '';
+  renderInterestCategories($('interestSearch').value);
+  renderSelectedInterests();
+});
+$('customInterestInput').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); $('addCustomInterest').click(); }
+});
+
+async function loadBrazilianMunicipalities() {
+  const list = $('brazilCities');
+  if (!list || list.dataset.loaded === 'true' || list.dataset.loading === 'true') return;
+  list.dataset.loading = 'true';
+  try {
+    const response = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome');
+    if (!response.ok) throw new Error('Não foi possível consultar o IBGE.');
+    const municipalities = await response.json();
+    const fragment = document.createDocumentFragment();
+    municipalities.forEach(municipality => {
+      const state = municipality.microrregiao?.mesorregiao?.UF
+        || municipality['regiao-imediata']?.['regiao-intermediaria']?.UF;
+      if (!municipality.nome || !state?.sigla) return;
+      const option = document.createElement('option');
+      option.value = municipality.nome + ' - ' + state.sigla;
+      fragment.append(option);
+    });
+    list.append(fragment);
+    list.dataset.loaded = 'true';
+  } catch (error) {
+    console.warn('Lista de municípios do IBGE indisponível:', error);
+    $('city').placeholder = 'Digite sua cidade (IBGE indisponível no momento)';
+  } finally {
+    list.dataset.loading = 'false';
+  }
+}
+$('city').addEventListener('focus', loadBrazilianMunicipalities, { once: true });
+$('city').addEventListener('input', loadBrazilianMunicipalities, { once: true });
+
 mbti.forEach(v => $('personality').add(new Option(v,v)));
 intentions.forEach(v => { const label=document.createElement('label');label.className='choice-item';const input=document.createElement('input');input.type='checkbox';input.value=v;label.append(input,document.createTextNode(v));$('intentOptions').append(label); });
 
