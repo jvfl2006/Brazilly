@@ -328,27 +328,20 @@ async function renderConversationList() {
   if (!root) return;
   root.innerHTML = '';
   if (!currentUser) { root.textContent = 'Entre na sua conta para ver suas conversas.'; return; }
-  const {data:rows,error} = await db.from('conversations')
-    .select('id,user_one,user_two,updated_at').order('updated_at',{ascending:false}).limit(100);
+  const {data:rows,error} = await db.rpc('list_my_conversations');
   if (error) { root.textContent = 'Não foi possível carregar conversas: ' + error.message; return; }
   if (!rows?.length) { root.textContent = 'Você ainda não iniciou nenhuma conversa. Abra um perfil para mandar a primeira mensagem.'; return; }
-  const otherIds = rows.map(row => row.user_one === currentUser.id ? row.user_two : row.user_one);
-  const {data:profiles,error:profileError} = await db.from('profiles')
-    .select('user_id,display_name').in('user_id',otherIds);
-  if (profileError) { root.textContent = 'Não foi possível carregar os contatos: ' + profileError.message; return; }
-  const names = new Map((profiles || []).map(p => [p.user_id,p.display_name]));
   for (const row of rows) {
-    const otherId = row.user_one === currentUser.id ? row.user_two : row.user_one;
     const {data:lastRows} = await db.from('messages').select('body,created_at')
-      .eq('conversation_id',row.id).order('created_at',{ascending:false}).limit(1);
+      .eq('conversation_id',row.conversation_id).order('created_at',{ascending:false}).limit(1);
     const item = document.createElement('button');
     item.type = 'button';
-    item.className = 'conversation-list-item' + (row.id === activeConversationId ? ' active' : '');
-    const name = document.createElement('strong'); name.textContent = names.get(otherId) || 'Usuário';
+    item.className = 'conversation-list-item' + (row.conversation_id === activeConversationId ? ' active' : '');
+    const name = document.createElement('strong'); name.textContent = row.display_name || 'Usuário';
     const preview = document.createElement('span'); preview.textContent = lastRows?.[0]?.body || 'Conversa iniciada';
     const date = document.createElement('small'); date.textContent = lastRows?.[0]?.created_at ? new Date(lastRows[0].created_at).toLocaleDateString('pt-BR') : '';
     item.append(name,preview,date);
-    item.addEventListener('click',()=>openConversation(row.id,names.get(otherId)));
+    item.addEventListener('click',()=>openConversation(row.conversation_id,row.display_name));
     root.append(item);
   }
 }
