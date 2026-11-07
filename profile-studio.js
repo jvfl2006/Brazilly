@@ -170,8 +170,6 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   box(windowGroup,'window-cross',[0,0,.1],[.055,2.12,.12],mats.wood);
   box(windowGroup,'window-cross',[0,0,.11],[2.65,.055,.12],mats.wood);
   // Soft rug and fixed room accents.
-  const rug=new T.Mesh(new T.CylinderGeometry(2.05,2.05,.055,48),material('rug','#967b70'));
-  rug.scale.set(1.22,1,.7);rug.position.set(-.1,.02,1.2);rug.receiveShadow=true;roomRoot.add(rug);
   const ceilingGlow=new T.PointLight(palette.key,1.2,14);ceilingGlow.position.set(0,4.6,0);roomRoot.add(ceilingGlow);
   const lampGlow=new T.PointLight('#ffd5a0',1.1,7);lampGlow.position.set(2.8,2.5,-.55);roomRoot.add(lampGlow);
   const ambient=new T.HemisphereLight(palette.ambient,palette.trim,1.5);scene.add(ambient);
@@ -260,8 +258,9 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   const aspectCamera=()=>{
     const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight),aspect=w/h;
     camera.aspect=aspect;
-    const dist=Math.max(10,5.4/(Math.tan(T.MathUtils.degToRad(19))*Math.min(aspect,1.55)));
-    camera.position.set(aspect<1.08?0:dist*.43,aspect<1.08?dist*.34:dist*.37,dist*.91);
+    const dist=aspect<1.05?14.4:10.2;
+    world.scale.set(aspect<1.05?.78:1,1,1);
+    camera.position.set(aspect<1.05?0:dist*.43,aspect<1.05?5.6:dist*.37,aspect<1.05?dist:dist*.91);
     camera.lookAt(0,1.38,-.1);camera.updateProjectionMatrix();
     renderer.setSize(Math.round(w*(settings.theme==='pixel'?.58:1)),Math.round(h*(settings.theme==='pixel'?.58:1)),false);
     renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
@@ -424,7 +423,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     if(state.stopped||!renderer.domElement.isConnected){dispose();return;}
     state.raf=requestAnimationFrame(animate);
     if(document.hidden)return;
-    const t=performance.now()*.001;
+    const t=window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:performance.now()*.001;
     dust.rotation.y=Math.sin(t*.08)*.1;
     sun.position.y=.64+Math.sin(t*.12)*.05;
     lampGlow.intensity=1.0+Math.sin(t*1.7)*.08;
@@ -476,7 +475,7 @@ function editorMarkup(){
   return panel;
 }
 function createWorldMarkup(profile,settings,photos,editable){
-  const shell=element('section','profile-custom-shell');shell.dataset.theme=settings.theme;
+  const shell=element('section','profile-custom-shell');shell.dataset.theme=settings.theme;shell.style.setProperty('--profile-accent',settings.accent);
   const stage=element('div','profile-world-stage');stage.setAttribute('aria-label','Ambiente virtual 3D do perfil');
   const top=element('div','profile-world-topline');
   top.append(element('span','world-brand-label','BRAZILLY  /  MEU ESPAÇO'),element('span','world-explore-label','Explore os objetos do ambiente'));
