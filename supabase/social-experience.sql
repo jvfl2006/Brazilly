@@ -22,7 +22,7 @@ grant select,insert,delete on public.stories to authenticated;
 grant select,insert on public.story_views to authenticated;
 drop policy if exists stories_read_visible on public.stories;
 create policy stories_read_visible on public.stories for select to authenticated using (
- expires_at>now() and (user_id=auth.uid() or audience='public' or
+ expires_at>now() and (user_id=auth.uid() or (audience='public' and not coalesce((select p.private_profile from public.profiles p where p.user_id=stories.user_id),false)) or
   (audience='friends' and exists(select 1 from public.friend_requests f where f.status='accepted' and
    ((f.user_one=auth.uid() and f.user_two=stories.user_id) or (f.user_two=auth.uid() and f.user_one=stories.user_id)))))
  and not public.is_blocked_between(auth.uid(),user_id)
@@ -43,7 +43,7 @@ create policy story_media_upload_own on storage.objects for insert to authentica
 drop policy if exists story_media_read_visible on storage.objects;
 create policy story_media_read_visible on storage.objects for select to authenticated using(bucket_id='story-media' and exists(
  select 1 from public.stories s where s.media_path=name and s.expires_at>now() and
- (s.user_id=auth.uid() or s.audience='public' or (s.audience='friends' and exists(select 1 from public.friend_requests f where f.status='accepted' and
+ (s.user_id=auth.uid() or (s.audience='public' and not coalesce((select p.private_profile from public.profiles p where p.user_id=s.user_id),false)) or (s.audience='friends' and exists(select 1 from public.friend_requests f where f.status='accepted' and
  ((f.user_one=auth.uid() and f.user_two=s.user_id) or (f.user_two=auth.uid() and f.user_one=s.user_id)))))
  and not public.is_blocked_between(auth.uid(),s.user_id)));
 drop policy if exists story_media_delete_own on storage.objects;
@@ -112,3 +112,33 @@ begin
  end if;
 end;
 $realtime$;
+
+-- Privacidade de stories: perfis privados só aparecem para amigos aceitos.
+drop policy if exists stories_read_visible on public.stories;
+create policy stories_read_visible on public.stories for select to authenticated using (
+ expires_at>now() and (user_id=auth.uid() or
+  (audience='public' and not coalesce((select p.private_profile from public.profiles p where p.user_id=stories.user_id),false)) or
+  exists(select 1 from public.friend_requests f where f.status='accepted' and
+   ((f.user_one=auth.uid() and f.user_two=stories.user_id) or (f.user_two=auth.uid() and f.user_one=stories.user_id))))
+ and not public.is_blocked_between(auth.uid(),user_id)
+);
+drop policy if exists story_media_read_visible on storage.objects;
+create policy story_media_read_visible on storage.objects for select to authenticated using(bucket_id='story-media' and exists(
+ select 1 from public.stories s where s.media_path=name and s.expires_at>now() and
+ (s.user_id=auth.uid() or (s.audience='public' and not coalesce((select p.private_profile from public.profiles p where p.user_id=s.user_id),false)) or
+  exists(select 1 from public.friend_requests f where f.status='accepted' and
+   ((f.user_one=auth.uid() and f.user_two=s.user_id) or (f.user_two=auth.uid() and f.user_one=s.user_id))))
+ and not public.is_blocked_between(auth.uid(),s.user_id)));
+create or replace function public.get_story_feed()
+returns table(story_id uuid,user_id uuid,display_name text,caption text,media_path text,audience text,created_at timestamptz,expires_at timestamptz,view_count bigint,viewed_by_me boolean)
+language sql security definer set search_path=public as $story_feed$
+ select s.id,s.user_id,p.display_name,s.caption,s.media_path,s.audience,s.created_at,s.expires_at,
+  (select count(*) from public.story_views v where v.story_id=s.id),
+  exists(select 1 from public.story_views v where v.story_id=s.id and v.viewer_id=auth.uid())
+ from public.stories s join public.profiles p on p.user_id=s.user_id
+ where auth.uid() is not null and s.expires_at>now() and
+ (s.user_id=auth.uid() or (s.audience='public' and not coalesce(p.private_profile,false)) or
+  exists(select 1 from public.friend_requests f where f.status='accepted' and
+   ((f.user_one=auth.uid() and f.user_two=s.user_id) or (f.user_two=auth.uid() and f.user_one=s.user_id))))
+ and not public.is_blocked_between(auth.uid(),s.user_id) order by s.created_at desc;
+$story_feed$;
