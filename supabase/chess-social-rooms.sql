@@ -51,19 +51,21 @@ alter table public.chess_rooms enable row level security;
 alter table public.chess_room_members enable row level security;
 alter table public.chess_games enable row level security;
 alter table public.chess_room_messages enable row level security;
-grant select on public.chess_rooms,public.chess_room_members,public.chess_games,public.chess_room_messages to authenticated;
-drop policy if exists chess_rooms_read_public_or_member on public.chess_rooms;
-create policy chess_rooms_read_public_or_member on public.chess_rooms for select to authenticated
- using (is_public or exists(select 1 from public.chess_room_members m where m.room_id=id and m.user_id=(select auth.uid())));
+grant select on public.chess_room_members,public.chess_games,public.chess_room_messages to authenticated;
+create or replace function public.is_chess_room_member(p_room_id uuid)
+returns boolean language sql security definer set search_path = ''
+as $ select exists(select 1 from public.chess_room_members m where m.room_id=p_room_id and m.user_id=(select auth.uid())); $;
+revoke all on function public.is_chess_room_member(uuid) from public,anon;
+grant execute on function public.is_chess_room_member(uuid) to authenticated;
 drop policy if exists chess_members_read_room on public.chess_room_members;
 create policy chess_members_read_room on public.chess_room_members for select to authenticated
- using (exists(select 1 from public.chess_room_members mine where mine.room_id=chess_room_members.room_id and mine.user_id=(select auth.uid())));
+ using ((select public.is_chess_room_member(room_id)));
 drop policy if exists chess_games_read_room_members on public.chess_games;
 create policy chess_games_read_room_members on public.chess_games for select to authenticated
- using (exists(select 1 from public.chess_room_members m where m.room_id=chess_games.room_id and m.user_id=(select auth.uid())));
+ using ((select public.is_chess_room_member(room_id)));
 drop policy if exists chess_messages_read_room_members on public.chess_room_messages;
 create policy chess_messages_read_room_members on public.chess_room_messages for select to authenticated
- using (exists(select 1 from public.chess_room_members m where m.room_id=chess_room_messages.room_id and m.user_id=(select auth.uid())));
+ using ((select public.is_chess_room_member(room_id)));
 revoke insert,update,delete on public.chess_rooms,public.chess_room_members,public.chess_games,public.chess_room_messages from anon,authenticated;
 do $chess_realtime$
 begin
