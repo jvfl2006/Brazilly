@@ -40,6 +40,7 @@ create or replace function private.is_social_game_member(p_room_id uuid)
 returns boolean language sql stable security definer set search_path=''
 as $$ select exists(select 1 from public.social_game_members m where m.room_id=p_room_id and m.user_id=(select auth.uid())); $$;
 revoke all on function private.is_social_game_member(uuid) from public,anon;
+grant usage on schema private to authenticated;
 grant execute on function private.is_social_game_member(uuid) to authenticated;
 drop policy if exists social_game_rooms_member_read on public.social_game_rooms;
 create policy social_game_rooms_member_read on public.social_game_rooms for select to authenticated using (private.is_social_game_member(id));
