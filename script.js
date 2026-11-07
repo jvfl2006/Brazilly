@@ -219,6 +219,7 @@ function showScreen(id) {
   if (id === 'moderationScreen') renderModerationReports();
   if (id === 'communityHubScreen') loadCommunityHub();
   if (id === 'howItWorksScreen') { activePresentationSlide=0; goToPresentationSlide(0); }
+  document.dispatchEvent(new CustomEvent('brazilly:screen-changed',{detail:id}));
 }
 document.querySelectorAll('[data-screen]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); showScreen(el.dataset.screen); }));
 document.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', () => showScreen(el.dataset.open)));
