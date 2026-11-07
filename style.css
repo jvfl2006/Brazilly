@@ -6,3 +6,29 @@
 .profile-card{cursor:pointer;transition:border-color .18s,transform .18s}.profile-card:hover,.profile-card:focus-visible{border-color:var(--accent2);transform:translateY(-2px);outline:none}
 .messages-page{width:min(1100px,100%);margin:0 auto}.messenger-layout{display:grid;grid-template-columns:minmax(230px,310px) 1fr;gap:14px;margin-top:18px;min-height:590px}.conversation-sidebar,.conversation-panel{background:var(--surface);border:1px solid var(--border);border-radius:15px;min-width:0;overflow:hidden}.conversation-sidebar{padding:16px}.conversation-sidebar h3{font-size:14px;margin:0 0 12px}.conversation-list{display:grid;gap:7px}.conversation-list-item{display:grid;gap:4px;text-align:left;padding:12px;border:1px solid transparent;border-radius:10px;background:var(--surface2);color:var(--text);cursor:pointer;min-width:0}.conversation-list-item.active,.conversation-list-item:hover{border-color:var(--accent2);background:#8068ed18}.conversation-list-item strong{font-size:12px}.conversation-list-item span{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conversation-list-item small{font-size:9px;color:var(--muted)}.conversation-panel{display:flex;min-height:590px}.conversation-placeholder{margin:auto;text-align:center;padding:35px;max-width:400px}.conversation-placeholder h3{font-size:17px}.conversation-placeholder p{font-size:12px;line-height:1.7;color:var(--muted)}.placeholder-icon{font-size:42px;color:var(--accent2)}.active-conversation{display:flex;flex-direction:column;width:100%;min-height:590px}.active-conversation[hidden],.conversation-placeholder[hidden]{display:none}.conversation-header{padding:17px 20px;border-bottom:1px solid var(--border)}.conversation-header strong,.conversation-header small{display:block}.conversation-header strong{font-size:14px}.conversation-header small{font-size:10px;color:var(--muted);margin-top:4px}.conversation-messages{flex:1;min-height:380px;max-height:60vh;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:9px}.direct-message{max-width:min(78%,520px);padding:10px 13px;border-radius:13px;background:var(--surface2);overflow-wrap:anywhere}.direct-message.sent{align-self:flex-end;background:#7156d8;color:white;border-bottom-right-radius:4px}.direct-message.received{align-self:flex-start;border-bottom-left-radius:4px}.direct-message p{font-size:13px;line-height:1.5;margin:0 0 4px;white-space:pre-wrap}.direct-message time{display:block;text-align:right;font-size:9px;opacity:.7}.direct-message-form{display:flex;gap:9px;padding:14px;border-top:1px solid var(--border)}.direct-message-form input{flex:1;min-width:0}.profile-detail-card{width:min(620px,100%)}.profile-detail-card h2{margin-top:16px}.profile-detail-card h3{font-size:13px;margin:18px 0 8px}.detail-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.detail-photos img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px}.profile-detail-bio{font-size:13px;line-height:1.7;white-space:pre-wrap}
 @media(max-width:720px){.messenger-layout{grid-template-columns:1fr;min-height:0}.conversation-sidebar{max-height:230px;overflow:auto}.conversation-panel,.active-conversation{min-height:500px}.conversation-messages{min-height:300px;max-height:48vh}.direct-message-form{padding:10px}.messages-page .inner-header{gap:8px}.messages-page .inner-header .status{font-size:9px}}
+
+/* Brazilly social profiles */
+.social-profile-actions{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 10px}
+.button-danger{background:#8e3948;color:#fff;border-color:#a94b5b}
+.button-danger:hover{background:#a74658}
+.personality-test-link{display:inline-block;margin:0 0 8px;color:var(--accent2);font-size:11px;text-decoration:underline}
+.social-profile-fields{margin:8px 0 14px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface2)}
+.social-profile-fields label{margin-top:4px!important}
+#openChatProfile{margin-left:auto;white-space:nowrap}
+.conversation-header{display:flex;align-items:center;gap:12px}
+@media(max-width:560px){.social-profile-actions .button{flex:1;min-width:130px}.conversation-header{padding:12px;gap:7px}#openChatProfile{font-size:10px;padding:7px 9px}}
+
+
+/* Social profile additions */
+.social-profile-fields{margin:16px 0}
+.social-private-row{margin:14px 0;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);font-size:12px;color:var(--muted)}
+.social-private-row input{margin-right:8px;accent-color:var(--accent)}
+.personality-test-link{display:inline-block;margin:5px 0 12px;color:var(--accent2);font-size:12px;font-weight:700}
+.custom-interest-row{display:flex;gap:9px;margin-top:12px}
+.custom-interest-row input{flex:1;min-width:0}
+.incoming-requests-section{margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
+.incoming-requests-section h3{font-size:13px;margin:0 0 10px}
+.incoming-friend-requests{display:grid;gap:9px}
+.incoming-request-item{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}
+.incoming-request-item strong{flex:1 1 100%;font-size:12px}
+.incoming-request-item .button{padding:7px 10px;font-size:11px}
