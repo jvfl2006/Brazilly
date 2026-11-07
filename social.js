@@ -21,12 +21,20 @@
       if (bio) bio.parentNode.insertBefore(group, bio);
       else step.append(group);
     }
-    const privacy = document.querySelector('.wizard-step[data-step="4"]');
-    if (privacy && !$('privateProfile')) {
-      const label = document.createElement('label');
-      label.className = 'check-row';
-      label.innerHTML = '<input type="checkbox" id="privateProfile"> Perfil privado: somente amizades aceitas poderão ver seus detalhes';
-      privacy.insertBefore(label, privacy.querySelector('.field-note:last-of-type'));
+
+    const interestsRoot = $('interestCategories');
+    if (interestsRoot && !$('customInterestInput')) {
+      const custom = document.createElement('div');
+      custom.className = 'custom-interest-row';
+      custom.innerHTML = '<input id="customInterestInput" maxlength="50" placeholder="Outro interesse..."><button type="button" class="button button-outline" id="addCustomInterest">Adicionar</button>';
+      interestsRoot.after(custom);
+      $('addCustomInterest').addEventListener('click',()=>{
+        const value=$('customInterestInput').value.trim();
+        if(!value)return;
+        selectedInterests.add(value);
+        $('customInterestInput').value='';
+        renderSelectedInterests();
+      });
     }
     const personalityLabel = document.querySelector('label[for="personality"]');
     if (personalityLabel && !$('personalityTestLink')) {
@@ -75,7 +83,6 @@
     p.profession = $('profession')?.value.trim() || '';
     p.religion = $('religion')?.value.trim() || '';
     p.relationshipStatus = $('relationshipStatus')?.value || '';
-    p.isPrivate = Boolean($('privateProfile')?.checked);
     return p;
   };
 
@@ -85,8 +92,7 @@
     const { error } = await db.from('profiles').update({
       profession: p.profession || null,
       religion: p.religion || null,
-      relationship_status: p.relationshipStatus || null,
-      is_private: Boolean(p.isPrivate)
+      relationship_status: p.relationshipStatus || null
     }).eq('user_id', currentUser.id);
     if (error) throw error;
     currentProfile = { ...currentProfile, ...p };
@@ -116,7 +122,6 @@
     if ($('profession')) $('profession').value = p.profession || '';
     if ($('religion')) $('religion').value = p.religion || '';
     if ($('relationshipStatus')) $('relationshipStatus').value = p.relationshipStatus || '';
-    if ($('privateProfile')) $('privateProfile').checked = Boolean(p.isPrivate);
   };
 
   function refreshSignupLabels() {
@@ -136,6 +141,15 @@
     if (!root || !selectedPublicProfile || !currentUser) return;
     root.innerHTML = '';
     const otherId = selectedPublicProfile.user_id;
+    const {data:details,error:detailsError}=await db.rpc('get_profile_details',{p_user_id:otherId});
+    if(!detailsError && details?.[0]) {
+      const p=details[0];
+      const fields=[['Profissão',p.profession],['Religião / crença',p.religion],['Relacionamento',p.relationship_status]];
+      const rootDetails=$('profileDetailContent');
+      fields.filter(x=>x[1]).forEach(([label,value])=>{
+        const line=document.createElement('p');line.className='field-note';line.textContent=label+': '+value;rootDetails.append(line);
+      });
+    }
     if (otherId === currentUser.id) return;
     const [favorite, outgoing, incoming, blocked] = await Promise.all([
       db.from('user_favorites').select('favorite_user_id').eq('user_id',currentUser.id).eq('favorite_user_id',otherId).maybeSingle(),
