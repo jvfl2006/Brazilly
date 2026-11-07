@@ -77,7 +77,11 @@
   const notice = (message, bad = false) => { const node=$g('gamesNotice'); node.textContent=message||''; node.classList.toggle('is-error',bad); };
   const api = async (action, payload = {}) => {
     const { data, error } = await db.functions.invoke('chess-api', { body: { action, ...payload } });
-    if (error) throw new Error(data?.error || error.message || 'Não foi possível concluir a operação.');
+    if (error) {
+      let detail = data?.error || error.message || 'Não foi possível concluir a operação.';
+      try { const payload = await error.context?.json(); if (payload?.error) detail = payload.error; } catch {}
+      throw new Error(detail);
+    }
     if (data?.error) throw new Error(data.error);
     return data || {};
   };
@@ -269,6 +273,5 @@
       selectedSquare=square;legalTargets=chess.moves({square,verbose:true}).map(m=>m.to);renderBoard();
     }else{selectedSquare=null;legalTargets=[];renderBoard();}
   }
-  loadRooms();
   window.addEventListener('beforeunload',()=>{if(roomChannel)db.removeChannel(roomChannel);});
 })();
