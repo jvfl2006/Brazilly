@@ -73,7 +73,7 @@ function init(){
  document.addEventListener('brazilly:screen-changed',event=>{if(event.detail==='adminScenesScreen'){if(!isAdmin()){showScreen('homeScreen');alert('Esta área é exclusiva da administração.');return;}loadCatalog();}});
  $('adminSceneUploadForm')?.addEventListener('submit',publish);
  $('adminSceneRefreshButton')?.addEventListener('click',loadCatalog);
- $('adminSceneFile')?.addEventListener('change',event=>{const file=event.target.files?.[0];if(!file)return;if(!allowed.has(file.type)||file.size>maxBytes){status('Formato inválido ou arquivo maior que 30 MB.');event.target.value='';clearPreview();return;}if(!$('adminSceneTitle').value.trim())$('adminSceneTitle').value=file.name.replace(/\\.[^.]+$/,'').replace(/[-_]+/g,' ');showPreview(file);status(file.name+' selecionado.');});
+ $('adminSceneFile')?.addEventListener('change',event=>{const file=event.target.files?.[0];if(!file)return;if(!allowed.has(file.type)||file.size>maxBytes){status('Formato inválido ou arquivo maior que 30 MB.');event.target.value='';clearPreview();return;}if(!$('adminSceneTitle').value.trim())$('adminSceneTitle').value=file.name.split('.').slice(0,-1).join('.').replace(/[-_]+/g,' ');showPreview(file);status(file.name+' selecionado.');});
 }
 init();
 })();
