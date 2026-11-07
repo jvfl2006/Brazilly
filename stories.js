@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  if(!window.db||!$('storiesStrip'))return;
+  if(typeof db==='undefined'||!db||!$('storiesStrip'))return;
   let stories=[],viewerIndex=0,viewerTimer=null;
   const escapeText=value=>String(value||'');
   async function loadStories(){
