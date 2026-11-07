@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
     if(!remaining?.length){await admin.from("chess_rooms").update({status:"closed",updated_at:new Date().toISOString()}).eq("id",roomId);}
     else{
      const next=remaining[0],seats=new Set(remaining.map(m=>m.seat));let nextSeat=next.seat;
-     if(!seats.has("white"))nextSeat="white";else if(!seats.has("black"))nextSeat="black";
+     if(next.seat==="spectator"){if(!seats.has("white"))nextSeat="white";else if(!seats.has("black"))nextSeat="black";}
      const {error}=await admin.from("chess_room_members").update({role:"host",seat:nextSeat}).eq("room_id",roomId).eq("user_id",next.user_id);if(error)throw error;
      await admin.from("chess_rooms").update({status:"open",updated_at:new Date().toISOString()}).eq("id",roomId);
     }
