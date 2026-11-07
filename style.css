@@ -488,3 +488,12 @@ body.story-view-open{overflow:hidden}
 .direct-story-reference{display:grid;gap:4px;padding:9px 11px;border-left:3px solid #a991ff;border-radius:7px;background:#8068ed18}
 .direct-story-reference strong{font-size:11px;color:#c7baff}
 .direct-story-reference span{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* Shared interests in discovery cards */
+.profile-info{min-width:0;flex:1}
+.mutual-interests{display:grid;gap:6px;margin:8px 0 7px}
+.mutual-interests>strong{font-size:10px;letter-spacing:.2px;color:var(--accent2)}
+.mutual-interest-chips{display:flex;flex-wrap:wrap;gap:5px}
+.mutual-interest-chip{display:inline-flex;align-items:center;padding:4px 8px;border:1px solid color-mix(in srgb,var(--accent) 42%,transparent);border-radius:999px;background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--text)!important;font-size:10px!important;font-weight:700}
+.mutual-interests>small{font-size:10px;color:var(--muted)}
+.profile-info .other-interests{margin-top:5px}
