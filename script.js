@@ -263,6 +263,7 @@ $('clearFilters').addEventListener('click',()=>{localStorage.removeItem(STORAGE.
 let selectedPublicProfile = null;
 let activeConversationId = null;
 let activeConversationChannel = null;
+let activeConversationOtherUserId = null;
 const messageCache = new Set();
 
 function openProfileDetails(p) {
@@ -372,9 +373,18 @@ function subscribeToConversation(conversationId) {
       }
     }).subscribe();
 }
-async function openConversation(conversationId, otherName) {
+async function openConversation(conversationId, otherName, otherUserId) {
   activeConversationId = conversationId;
+  activeConversationOtherUserId = otherUserId || null;
+  $('conversationName').dataset.originalName=otherName||'Conversa';
   $('conversationName').textContent = otherName || 'Conversa';
+  $('conversationNickname').value='';
+  $('conversationWallpaper').value='default';
+  const {data:settings,error:settingsError}=await db.from('conversation_user_settings').select('nickname,wallpaper').eq('user_id',currentUser.id).eq('conversation_id',conversationId).maybeSingle();
+  if(settingsError)console.warn('Não foi possível carregar personalização da conversa:',settingsError.message);
+  if(settings){$('conversationNickname').value=settings.nickname||'';$('conversationWallpaper').value=settings.wallpaper||'default';}
+  $('conversationName').textContent=settings?.nickname||otherName||'Conversa';
+  applyConversationWallpaper(settings?.wallpaper||'default');
   $('conversationStatus').textContent = 'Conversa privada · mensagens em tempo real';
   $('conversationPlaceholder').hidden = true;
   $('activeConversation').hidden = false;
@@ -393,7 +403,7 @@ async function startDirectConversation(otherUserId, otherName) {
     if (error) throw error;
     closeModal('profileDetailModal');
     await showScreen('messagesScreen');
-    await openConversation(data, otherName);
+    await openConversation(data, otherName, otherUserId);
     await renderConversationList();
   } catch (error) {
     console.error(error);
@@ -411,20 +421,57 @@ async function renderConversationList() {
   const {data:rows,error} = await db.rpc('list_my_conversations');
   if (error) { root.textContent = 'Não foi possível carregar conversas: ' + error.message; return; }
   if (!rows?.length) { root.textContent = 'Você ainda não iniciou nenhuma conversa. Abra um perfil para mandar a primeira mensagem.'; return; }
+  const {data:customRows}=await db.from('conversation_user_settings').select('conversation_id,nickname').eq('user_id',currentUser.id).in('conversation_id',rows.map(row=>row.conversation_id));
+  const nicknameByConversation=new Map((customRows||[]).map(item=>[item.conversation_id,item.nickname]));
   for (const row of rows) {
     const {data:lastRows} = await db.from('messages').select('body,created_at')
       .eq('conversation_id',row.conversation_id).order('created_at',{ascending:false}).limit(1);
     const item = document.createElement('button');
     item.type = 'button';
     item.className = 'conversation-list-item' + (row.conversation_id === activeConversationId ? ' active' : '');
-    const name = document.createElement('strong'); name.textContent = row.display_name || 'Usuário';
+    const name = document.createElement('strong'); name.textContent = nicknameByConversation.get(row.conversation_id) || row.display_name || 'Usuário';
     const preview = document.createElement('span'); preview.textContent = lastRows?.[0]?.body || 'Conversa iniciada';
     const date = document.createElement('small'); date.textContent = lastRows?.[0]?.created_at ? new Date(lastRows[0].created_at).toLocaleDateString('pt-BR') : '';
     item.append(name,preview,date);
-    item.addEventListener('click',()=>openConversation(row.conversation_id,row.display_name));
+    item.addEventListener('click',()=>openConversation(row.conversation_id,row.display_name,row.other_user_id));
     root.append(item);
   }
 }
+
+function applyConversationWallpaper(value='default'){
+  const root=$('conversationMessages');
+  ['purple','midnight','forest'].forEach(name=>root.classList.remove('conversation-wallpaper-'+name));
+  if(['purple','midnight','forest'].includes(value))root.classList.add('conversation-wallpaper-'+value);
+}
+$('saveConversationSettings').addEventListener('click',async()=>{
+  if(!currentUser||!activeConversationId)return;
+  const nickname=$('conversationNickname').value.trim().slice(0,40);
+  const wallpaper=$('conversationWallpaper').value;
+  const {error}=await db.from('conversation_user_settings').upsert({
+    user_id:currentUser.id,conversation_id:activeConversationId,
+    nickname:nickname||null,wallpaper
+  },{onConflict:'user_id,conversation_id'});
+  if(error){alert('Não foi possível salvar a personalização: '+error.message);return;}
+  $('conversationName').textContent=nickname||$('conversationName').dataset.originalName||'Conversa';
+  $('conversationName').dataset.nickname=nickname;
+  applyConversationWallpaper(wallpaper);
+  $('conversationCustomizeSaved')?.remove();
+  const note=document.createElement('small');note.id='conversationCustomizeSaved';note.textContent='Personalização salva.';note.className='field-note';
+  $('saveConversationSettings').after(note);
+  await renderConversationList();
+});
+$('openChatProfileButton').addEventListener('click',async()=>{
+  if(!activeConversationId)return;
+  const button=$('openChatProfileButton');button.disabled=true;button.textContent='Carregando...';
+  try{
+    const {data,error}=await db.rpc('get_profile_for_conversation',{p_conversation_id:activeConversationId});
+    if(error)throw error;
+    if(!data?.length)throw new Error('Perfil indisponível para esta conversa.');
+    openProfileDetails(data[0]);
+  }catch(error){alert('Não foi possível abrir o perfil: '+error.message);}
+  finally{button.disabled=false;button.textContent='Ver perfil';}
+});
+
 $('directMessageForm').addEventListener('submit', async e => {
   e.preventDefault();
   const body = $('directMessageInput').value.trim();

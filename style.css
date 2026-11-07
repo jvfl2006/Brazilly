@@ -19,3 +19,8 @@
 
 /* Ações sociais do perfil */
 .profile-social-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 8px}.profile-social-actions .full-button{margin:0}.profile-social-actions #reportProfileButton{grid-column:1/-1}
+
+
+/* Personalização individual das conversas */
+.conversation-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.conversation-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.conversation-customize{position:relative}.conversation-customize summary{cursor:pointer;color:var(--accent2);font-size:11px;list-style:none;padding:8px 10px;border:1px solid var(--border);border-radius:8px}.conversation-customize-panel{position:absolute;right:0;top:calc(100% + 7px);z-index:5;width:min(270px,80vw);padding:13px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 30px #0005;display:grid;gap:8px}.conversation-customize-panel label{font-size:11px;color:var(--muted)}.conversation-customize-panel input,.conversation-customize-panel select{width:100%;min-width:0}.conversation-wallpaper-purple{background:radial-gradient(ellipse at top,#7254a933,transparent 65%),var(--surface)}.conversation-wallpaper-midnight{background:linear-gradient(145deg,#101827,#20243a)}.conversation-wallpaper-forest{background:radial-gradient(ellipse at bottom,#24644755,transparent 65%),var(--surface)}.conversation-title{min-width:0}
+@media(max-width:520px){.conversation-header{align-items:flex-start;padding:12px}.conversation-header-actions{justify-content:flex-end}.conversation-header-actions .button{font-size:10px;padding:7px 9px}}
