@@ -341,17 +341,39 @@ function addMessageToView(message) {
   const bubble = document.createElement('div');
   bubble.className = 'direct-message ' + (message.sender_id === currentUser?.id ? 'sent' : 'received');
   bubble.dataset.messageId = message.id;
-  const body = document.createElement('p');
-  body.textContent = message.body;
+  if(message.message_type==='image'||message.message_type==='gif'||message.message_type==='sticker'||message.message_type==='audio'){
+    const mediaBox=document.createElement('div');mediaBox.className='message-media';
+    db.storage.from('chat-media').createSignedUrl(message.media_path,3600).then(({data,error})=>{
+      if(error||!data?.signedUrl){mediaBox.textContent='Mídia indisponível.';return;}
+      if(message.message_type==='audio'){
+        const audio=document.createElement('audio');audio.controls=true;audio.preload='metadata';audio.src=data.signedUrl;mediaBox.append(audio);
+      }else{
+        const img=document.createElement('img');img.src=data.signedUrl;img.alt=message.message_type==='gif'?'GIF recebido':'Imagem recebida';img.loading='lazy';
+        const shouldBlur=Boolean(message.media_blurred)&&message.sender_id!==currentUser?.id;
+        if(shouldBlur){
+          img.classList.add('message-image-blurred');
+          const reveal=document.createElement('button');reveal.type='button';reveal.className='button button-small button-outline';reveal.textContent='Revelar imagem';
+          reveal.addEventListener('click',()=>{img.classList.remove('message-image-blurred');reveal.remove();});
+          mediaBox.append(img,reveal);
+        }else mediaBox.append(img);
+      }
+    }).catch(()=>{mediaBox.textContent='Não foi possível carregar a mídia.';});
+    bubble.append(mediaBox);
+  }
+  if(message.message_type==='text'||!message.message_type){
+    const body = document.createElement('p');
+    body.textContent = message.body;
+    bubble.append(body);
+  }
   const time = document.createElement('time');
   time.dateTime = message.created_at;
   time.textContent = new Date(message.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-  bubble.append(body,time);
+  bubble.append(time);
   root.append(bubble);
   root.scrollTop = root.scrollHeight;
 }
 async function loadConversationMessages(conversationId) {
-  const {data,error} = await db.from('messages').select('id,conversation_id,sender_id,body,created_at,read_at')
+  const {data,error} = await db.from('messages').select('id,conversation_id,sender_id,body,created_at,read_at,message_type,media_path,media_mime,media_size,media_blurred')
     .eq('conversation_id', conversationId).order('created_at', {ascending:true}).limit(300);
   if (error) throw error;
   $('conversationMessages').innerHTML = '';
@@ -470,6 +492,84 @@ $('openChatProfileButton').addEventListener('click',async()=>{
     openProfileDetails(data[0]);
   }catch(error){alert('Não foi possível abrir o perfil: '+error.message);}
   finally{button.disabled=false;button.textContent='Ver perfil';}
+});
+
+
+async function compressChatImage(file,quality){
+  if(file.type==='image/gif')return file;
+  if(!window.createImageBitmap)throw new Error('Seu navegador não oferece compressão de imagens.');
+  const bitmap=await createImageBitmap(file);
+  const scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+  canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+  const context=canvas.getContext('2d');
+  context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+  bitmap.close?.();
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+  if(!blob)throw new Error('Não foi possível processar a imagem.');
+  return blob;
+}
+async function sendChatMedia(blob,type,mime,targetConversationId=activeConversationId){
+  if(!currentUser||!targetConversationId)throw new Error('Abra uma conversa antes de enviar mídia.');
+  if(blob.size>15*1024*1024)throw new Error('O arquivo excede o limite de 15 MB.');
+  const extension=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','audio/webm':'webm','audio/ogg':'ogg','audio/mp4':'m4a','audio/mpeg':'mp3','audio/wav':'wav' })[mime]||'bin';
+  const path=targetConversationId+'/'+currentUser.id+'/'+crypto.randomUUID()+'.'+extension;
+  const {error:uploadError}=await db.storage.from('chat-media').upload(path,blob,{contentType:mime,upsert:false,cacheControl:'3600'});
+  if(uploadError)throw uploadError;
+  const labels={image:'Imagem',audio:'Áudio',gif:'GIF',sticker:'Figurinha'};
+  const {error:messageError}=await db.from('messages').insert({
+    conversation_id:targetConversationId,sender_id:currentUser.id,
+    body:labels[type]||'Mídia',message_type:type,media_path:path,
+    media_mime:mime,media_size:blob.size,media_blurred:['image','gif','sticker'].includes(type)
+  });
+  if(messageError){await db.storage.from('chat-media').remove([path]);throw messageError;}
+}
+async function handleChatImage(file,type){
+  if(!file)return;
+  const quality=Number($('chatImageQuality').value);
+  const blob=(type==='sticker')?file:await compressChatImage(file,quality);
+  const mime=blob.type||file.type;
+  await sendChatMedia(blob,type,mime);
+}
+$('chooseChatImage').addEventListener('click',()=>$('chatImageInput').click());
+$('chooseChatGif').addEventListener('click',()=>$('chatGifInput').click());
+$('chatImageInput').addEventListener('change',async e=>{
+  const file=e.target.files?.[0];e.target.value='';if(!file)return;
+  try{await handleChatImage(file,'image');}catch(error){alert('Falha ao enviar imagem: '+error.message);}
+});
+$('chatGifInput').addEventListener('change',async e=>{
+  const file=e.target.files?.[0];e.target.value='';if(!file)return;
+  const type=file.type==='image/gif'?'gif':'sticker';
+  try{await handleChatImage(file,type);}catch(error){alert('Falha ao enviar GIF/figurinha: '+error.message);}
+});
+const emojis=['😀','😂','🥹','😍','😎','🤔','😭','😡','🤝','👍','👎','❤️','🔥','🎉','💀','🤡','🚀','🐸','🐱','🏍️','⚙️','🍕','☕','✨'];
+emojis.forEach(emoji=>{
+  const button=document.createElement('button');button.type='button';button.textContent=emoji;button.setAttribute('aria-label','Inserir '+emoji);
+  button.addEventListener('click',()=>{$('directMessageInput').value += emoji;$('directMessageInput').focus();});
+  $('emojiTray').append(button);
+});
+$('emojiToggle').addEventListener('click',()=>{$('emojiTray').hidden=!$('emojiTray').hidden;});
+let audioRecorder=null,audioChunks=[],recordingConversationId=null;
+$('recordAudioButton').addEventListener('click',async()=>{
+  const button=$('recordAudioButton'),status=$('audioRecordStatus');
+  if(audioRecorder?.state==='recording'){audioRecorder.stop();button.textContent='● Gravar áudio';status.textContent='Processando áudio...';return;}
+  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){alert('Gravação de áudio não é compatível com este navegador.');return;}
+  try{
+    recordingConversationId=activeConversationId;
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const preferred=['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/mp4'].find(type=>MediaRecorder.isTypeSupported(type));
+    audioRecorder=new MediaRecorder(stream,preferred?{mimeType:preferred}:undefined);audioChunks=[];
+    audioRecorder.ondataavailable=event=>{if(event.data.size)audioChunks.push(event.data);};
+    audioRecorder.onstop=async()=>{
+      stream.getTracks().forEach(track=>track.stop());
+      const blob=new Blob(audioChunks,{type:audioRecorder.mimeType||'audio/webm'});
+      try{await sendChatMedia(blob,'audio',blob.type.split(';')[0],recordingConversationId);recordingConversationId=null;status.textContent='Áudio enviado.';}
+      catch(error){status.textContent='';alert('Falha ao enviar áudio: '+error.message);}
+      audioRecorder=null;
+    };
+    audioRecorder.start();button.textContent='■ Parar gravação';status.textContent='Gravando...';
+  }catch(error){alert('Não foi possível acessar o microfone: '+error.message);}
 });
 
 $('directMessageForm').addEventListener('submit', async e => {
