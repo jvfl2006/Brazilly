@@ -16,7 +16,7 @@ Deno.serve(async (req: Request) => {
  if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
  if(req.method!=="POST")return reply({error:"Método não permitido."},405);
  try{
-  const authHeader=req.headers.get("Authorization")??"",token=authHeader.replace(/^Bearer\\s+/i,"");
+  const authHeader=req.headers.get("Authorization")??"",token=authHeader.replace(/^Bearer\s+/i,"");
   if(!token||token===authHeader)return reply({error:"Entre na sua conta para usar as salas de xadrez."},401);
   const url=Deno.env.get("SUPABASE_URL")??"";
   const publishableKeys=JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS")??"{}");
