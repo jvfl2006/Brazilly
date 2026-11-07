@@ -53,9 +53,19 @@
       action.className='button button-small '+(group.is_member?'button-primary':'button-outline');
       action.textContent=group.is_member?'Abrir comunidade':'Participar';
       action.addEventListener('click',()=>group.is_member?openCommunity(group):joinCommunity(group));
-      card.append(title,category,desc,action);fragment.append(card);
+      card.append(title,category,desc,action);
+      if(group.created_by===currentUser.id){const remove=document.createElement('button');remove.type='button';remove.className='button button-small button-outline community-delete-button';remove.textContent='Excluir';remove.addEventListener('click',()=>deleteCommunity(group));card.append(remove);}
+      fragment.append(card);
     }
     root.replaceChildren(fragment);
+  }
+  async function deleteCommunity(group){
+    if(!requireLogin()||group.created_by!==currentUser.id)return;
+    if(!confirm('Excluir a comunidade “'+group.name+'”? Todas as mensagens, participantes e conteúdos associados também serão apagados. Esta ação não pode ser desfeita.'))return;
+    const {error}=await db.from('communities').delete().eq('id',group.id).eq('created_by',currentUser.id);
+    if(error){setText('communityStatus','Não foi possível excluir: '+error.message);return;}
+    if(communityId===group.id){if(communityChannel)db.removeChannel(communityChannel);if(communityReadChannel)db.removeChannel(communityReadChannel);communityChannel=null;communityReadChannel=null;communityId=null;el('communityRoom').hidden=true;el('communityDirectory').hidden=false;}
+    communitiesCache=null;setText('communityStatus','Comunidade excluída.');await renderCommunities(true);
   }
   async function joinCommunity(group){const {error}=await db.from('community_members').insert({community_id:group.id,user_id:currentUser.id,role:'member'});if(error&&error.code!=='23505'){setText('communityStatus','Não foi possível participar: '+error.message);return;}if(!error&&!group.is_member)group.member_count=Number(group.member_count||0)+1;group.is_member=true;communitiesCache=null;await openCommunity(group);await renderCommunities(true);}
   function renderCommunityMessages(rows){
@@ -80,6 +90,8 @@
   async function openCommunity(group){
     communityId=group.id;if(communityChannel)db.removeChannel(communityChannel);if(communityReadChannel)db.removeChannel(communityReadChannel);
     el('communityDirectory').hidden=true;el('communityRoom').hidden=false;setText('communityRoomTitle',group.name);setText('communityRoomDescription',Number(group.member_count||0)+' participantes · '+(group.description||group.category||'Comunidade Brazilly'));
+    const header=el('communityRoom').querySelector('.community-room-header');header.querySelector('[data-delete-community]')?.remove();
+    if(group.created_by===currentUser.id){const remove=document.createElement('button');remove.type='button';remove.className='button button-small button-outline community-delete-button';remove.dataset.deleteCommunity='true';remove.textContent='Excluir comunidade';remove.addEventListener('click',()=>deleteCommunity(group));header.append(remove);}
     await refreshCommunityMessages(true);
     communityChannel=db.channel('community-'+communityId).on('postgres_changes',{event:'INSERT',schema:'public',table:'community_messages',filter:'community_id=eq.'+communityId},()=>refreshCommunityMessages(true)).subscribe();
     communityReadChannel=db.channel('community-reads-'+communityId).on('postgres_changes',{event:'INSERT',schema:'public',table:'community_message_reads',filter:'community_id=eq.'+communityId},()=>refreshCommunityMessages(false)).subscribe();

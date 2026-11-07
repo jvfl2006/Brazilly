@@ -54,7 +54,7 @@
         <div id="gamesRoomsList" class="games-rooms-list"><p class="field-note">Carregando salas...</p></div>
       </section>
       <section id="chessRoomView" class="chess-room-view" hidden>
-        <header class="chess-room-top"><button class="back-button" type="button" id="chessBackToRooms">←</button><div class="chess-room-heading"><h2 id="chessRoomTitle">Sala de xadrez</h2><small id="chessRoomSubtitle">Carregando participantes...</small></div><button class="button button-small button-outline" type="button" id="chessCopyInvite">Copiar código</button><button class="button button-small button-outline" type="button" id="chessLeaveRoom">Sair</button></header>
+        <header class="chess-room-top"><button class="back-button" type="button" id="chessBackToRooms">←</button><div class="chess-room-heading"><h2 id="chessRoomTitle">Sala de xadrez</h2><small id="chessRoomSubtitle">Carregando participantes...</small></div><button class="button button-small button-outline" type="button" id="chessCopyInvite">Copiar código</button><button class="button button-small button-outline" type="button" id="chessDeleteRoom" hidden>Excluir sala</button><button class="button button-small button-outline" type="button" id="chessLeaveRoom">Sair</button></header>
         <div class="chess-room-layout">
           <section class="chess-play-panel">
             <div class="chess-player-bar" id="chessBlackPlayer"></div>
@@ -142,6 +142,13 @@
     catch(error){notice(error.message,true);}
   });
   $g('chessBackToRooms').addEventListener('click',()=>{leaveRoomView();loadRooms();});
+  $g('chessDeleteRoom').addEventListener('click',async()=>{
+    if(!currentRoom||!confirm('Excluir esta sala de xadrez? A partida, o chat e os participantes serão removidos permanentemente.'))return;
+    const roomId=currentRoom,button=$g('chessDeleteRoom');button.disabled=true;
+    try{await api('delete_room',{room_id:roomId});leaveRoomView();await loadRooms();notice('Sala excluída.');}
+    catch(error){notice(error.message,true);}
+    finally{button.disabled=false;}
+  });
   $g('chessLeaveRoom').addEventListener('click',async()=>{
     if(!currentRoom||!confirm('Sair desta sala? Se você estiver jogando, a partida será encerrada por desistência.'))return;
     const roomId=currentRoom;
@@ -192,7 +199,9 @@
         const meta=document.createElement('p');meta.textContent=(room.status==='playing'?'Partida em andamento':'Aguardando jogadores')+' · '+room.player_count+'/2 jogadores · '+room.spectator_count+' espectadores';
         copy.append(title,meta);main.append(icon,copy);
         const button=document.createElement('button');button.type='button';button.className='button button-primary';button.textContent=room.status==='playing'?'Assistir / entrar':'Entrar na sala';button.addEventListener('click',async()=>{try{await api('join_room',{room_id:room.id});await enterRoom(room.id);}catch(error){notice(error.message,true);}});
-        card.append(main,button);root.append(card);
+        card.append(main,button);
+        if(room.created_by===currentUser.id){const remove=document.createElement('button');remove.type='button';remove.className='button button-small button-outline room-delete-button';remove.textContent='Excluir';remove.addEventListener('click',async()=>{if(!confirm('Excluir esta sala e todo o seu histórico?'))return;try{await api('delete_room',{room_id:room.id});await loadRooms();notice('Sala excluída.');}catch(error){notice(error.message,true);}});card.append(remove);}
+        root.append(card);
       }
     }catch(error){root.innerHTML='';const p=document.createElement('p');p.className='field-note';p.textContent='Não foi possível carregar as salas: '+error.message;root.append(p);}
   }
@@ -248,6 +257,7 @@
       row.append(avatar,name,seat);root.append(row);
     }
     const me=members.find(m=>m.user_id===currentUser?.id);
+    $g('chessDeleteRoom').hidden=roomState?.room?.created_by!==currentUser?.id;
     $g('chessStartGameButton').hidden=!(me?.role==='host'&&members.some(m=>m.seat==='white')&&members.some(m=>m.seat==='black')&&roomState?.game?.status!=='active');
   }
   function renderChat(messages){

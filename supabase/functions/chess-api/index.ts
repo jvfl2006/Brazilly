@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
   const input=await req.json(),action=String(input?.action??"");
 
   if(action==="list_rooms"){
-   const {data:rooms,error}=await admin.from("chess_rooms").select("id,name,invite_code,is_public,status,created_at,updated_at").eq("is_public",true).neq("status","closed").order("updated_at",{ascending:false}).limit(40);if(error)throw error;
+   const {data:rooms,error}=await admin.from("chess_rooms").select("id,name,invite_code,is_public,status,created_at,updated_at,created_by").eq("is_public",true).neq("status","closed").order("updated_at",{ascending:false}).limit(40);if(error)throw error;
    const ids=(rooms??[]).map(r=>r.id);if(!ids.length)return reply({rooms:[]});
    const [{data:members,error:me},{data:games,error:ge}]=await Promise.all([admin.from("chess_room_members").select("room_id,seat").in("room_id",ids),admin.from("chess_games").select("id,room_id,status,ply,updated_at").in("room_id",ids).order("created_at",{ascending:false})]);if(me)throw me;if(ge)throw ge;
    const latest=new Map();for(const game of games??[])if(!latest.has(game.room_id))latest.set(game.room_id,game);
@@ -93,6 +93,12 @@ Deno.serve(async (req: Request) => {
    if(!member||!["white","black"].includes(member.seat))return reply({error:"Somente jogadores podem abandonar a partida."},403);if(!game)return reply({error:"Não existe uma partida ativa."},404);
    const winner=member.seat==="white"?"black":"white";const {data:updated,error}=await admin.from("chess_games").update({status:"resigned",winner,updated_at:new Date().toISOString()}).eq("id",game.id).eq("ply",game.ply).eq("status","active").select("*").maybeSingle();if(error)throw error;if(!updated)return reply({error:"A partida já foi atualizada. Atualize a sala."},409);
    await admin.from("chess_rooms").update({status:"open",updated_at:new Date().toISOString()}).eq("id",roomId);return reply({game:updated});
+  }
+  if(action==="delete_room"){
+   const roomId=String(input?.room_id??"");if(!roomId)return reply({error:"Sala inválida."},400);
+   const {data:room,error}=await admin.from("chess_rooms").select("id,created_by").eq("id",roomId).maybeSingle();if(error)throw error;if(!room)return reply({error:"Sala não encontrada."},404);
+   if(room.created_by!==user.id)return reply({error:"Somente quem criou a sala pode excluí-la."},403);
+   const {error:deleteError}=await admin.from("chess_rooms").delete().eq("id",roomId).eq("created_by",user.id);if(deleteError)throw deleteError;return reply({ok:true});
   }
   if(action==="leave_room"){
    const roomId=String(input?.room_id??"");
