@@ -138,3 +138,8 @@
 .streaming-coming-soon{position:absolute;top:18px;right:18px;padding:7px 11px;border:1px solid #b7a5ff66;border-radius:999px;background:#8068ed26;color:#d6ceff;font-size:9px;font-weight:800;letter-spacing:1.1px}
 @media(max-width:780px){.streaming-entry-section{padding:26px 12px 72px}.streaming-entry-card{grid-template-columns:1fr;padding:54px 22px 24px;gap:22px}.streaming-preview{max-width:420px;width:100%;margin:0 auto}.streaming-coming-soon{top:14px;right:14px}}
 @media(prefers-reduced-motion:no-preference){.streaming-entry-card{transition:border-color .3s ease,transform .3s ease}.streaming-entry-card:hover{transform:translateY(-3px);border-color:#a99aff77}}
+
+
+/* Creator-only room deletion actions */
+.room-delete-button,.community-delete-button{white-space:nowrap;border-color:rgba(220,90,110,.35);color:var(--danger,#dc5a6e)}
+.room-delete-button:hover,.community-delete-button:hover{background:rgba(220,90,110,.1)}
