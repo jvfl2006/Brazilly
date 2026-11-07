@@ -137,16 +137,14 @@ create policy communities_read_authenticated on public.communities for select to
 drop policy if exists communities_create_authenticated on public.communities;
 create policy communities_create_authenticated on public.communities for insert to authenticated with check(created_by=auth.uid());
 drop policy if exists community_members_read on public.community_members;
-create policy community_members_read on public.community_members for select to authenticated using(
- user_id=auth.uid() or exists(select 1 from public.community_members mine where mine.community_id=community_id and mine.user_id=auth.uid())
-);
+create policy community_members_read on public.community_members for select to authenticated using(true);
 drop policy if exists community_members_join on public.community_members;
 create policy community_members_join on public.community_members for insert to authenticated with check(user_id=auth.uid() and role='member' and exists(select 1 from public.communities c where c.id=community_id));
 drop policy if exists community_members_leave on public.community_members;
 create policy community_members_leave on public.community_members for delete to authenticated using(user_id=auth.uid() and role='member');
 drop policy if exists community_messages_read_members on public.community_messages;
 create policy community_messages_read_members on public.community_messages for select to authenticated using(exists(
- select 1 from public.community_members m where m.community_id=community_id and m.user_id=auth.uid()
+ select 1 from public.community_members m where m.community_id=community_messages.community_id and m.user_id=auth.uid()
 ));
 drop policy if exists community_messages_send_members on public.community_messages;
 create policy community_messages_send_members on public.community_messages for insert to authenticated with check(
@@ -168,3 +166,17 @@ end;
 $create_community$;
 revoke all on function public.create_community(text,text,text) from public;
 grant execute on function public.create_community(text,text,text) to authenticated;
+
+-- Publicação Realtime: adiciona apenas tabelas de mensagens, sem duplicar entradas.
+do $realtime$
+begin
+ if exists(select 1 from pg_publication where pubname='supabase_realtime') then
+  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='random_chat_messages') then
+   alter publication supabase_realtime add table public.random_chat_messages;
+  end if;
+  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='community_messages') then
+   alter publication supabase_realtime add table public.community_messages;
+  end if;
+ end if;
+end;
+$realtime$;
