@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#10121a"><meta name="description" content="BRAZILLY: converse, faça amizades e descubra pessoas perto de você.">
-  <title>BRAZILLY | Pessoas, conversas e possibilidades</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="social-expansion.css"><link rel="stylesheet" href="posts.css">
+  <title>BRAZILLY | Pessoas, conversas e possibilidades</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="social-expansion.css"><link rel="stylesheet" href="posts.css"><link rel="stylesheet" href="profile-studio.css">
 </head>
 <body>
 <header class="site-header">
@@ -185,7 +185,13 @@
   <small id="activityStatusFeedback" aria-live="polite"></small>
  </div>
  </section>
- <div id="profilePreview" class="profile-preview"></div><section class="profile-social-dashboard"><h3>Quem visitou seu perfil</h3><label class="check-row"><input type="checkbox" id="hideProfileVisits"> Não mostrar minhas visitas nos perfis que eu visualizar</label><div id="myProfileVisits" class="social-visits-list"></div><h3>Conquistas</h3><div id="myAchievements" class="social-achievement-list"></div><h3>Sequências de amizade</h3><div id="myFriendshipStreaks" class="social-visits-list"></div></section></div></section>
+ <div id="profilePreview" class="profile-preview"></div>
+  <section class="profile-studio-entry">
+    <div class="profile-studio-entry-copy"><span class="section-kicker">SEU CANTINHO</span><h3>Personalize seu espaço</h3><p>Monte uma página com sua cara: escolha um tema, organize widgets e adote um mascote.</p></div>
+    <button type="button" class="button button-primary" id="openProfileStudio">✦ Abrir editor</button>
+  </section>
+  <div id="profileCustomizationPreview" class="profile-customization-preview"></div>
+  <section class="profile-social-dashboard"><h3>Quem visitou seu perfil</h3><label class="check-row"><input type="checkbox" id="hideProfileVisits"> Não mostrar minhas visitas nos perfis que eu visualizar</label><div id="myProfileVisits" class="social-visits-list"></div><h3>Conquistas</h3><div id="myAchievements" class="social-achievement-list"></div><h3>Sequências de amizade</h3><div id="myFriendshipStreaks" class="social-visits-list"></div></section></div></section>
 
 <section id="socialHubScreen" class="screen inner-screen social-expansion-screen">
  <div class="social-expansion-container">
@@ -277,6 +283,52 @@
     <footer class="post-editor-footer"><p id="postEditorStatus" aria-live="polite"></p><div><button type="button" id="cancelPostEditor" class="button button-outline">Cancelar</button><button type="button" id="savePostEditor" class="button button-primary">Salvar alterações</button></div></footer>
   </section>
 </div>
+<div class="modal-backdrop profile-studio-modal" id="profileStudioModal" hidden>
+  <section class="profile-studio-dialog" role="dialog" aria-modal="true" aria-labelledby="profileStudioTitle">
+    <header class="profile-studio-header"><div><span class="section-kicker">BRAZILLY PROFILE STUDIO</span><h2 id="profileStudioTitle">Monte seu espaço</h2><p>As mudanças só aparecem no seu perfil depois de salvar.</p></div><button type="button" class="modal-close" data-close-modal="profileStudioModal" aria-label="Fechar">×</button></header>
+    <form id="profileStudioForm" class="profile-studio-form">
+      <div class="profile-studio-grid">
+        <label>Tema visual<select id="psTheme"><option value="aurora">Aurora roxa</option><option value="midnight">Meia-noite</option><option value="sunset">Pôr do sol</option><option value="forest">Floresta</option><option value="rose">Rosa elétrico</option></select></label>
+        <label>Cor de destaque<input id="psAccent" type="color" value="#9277ff"></label>
+        <label class="profile-studio-wide">Capa do perfil<select id="psCover"><option value="aurora">Aurora</option><option value="nebula">Nebulosa</option><option value="ocean">Oceano</option><option value="sunset">Horizonte</option><option value="forest">Floresta</option><option value="minimal">Minimalista</option></select></label>
+      </div>
+      <section class="profile-studio-section"><h3>Seu mascote</h3><p>Escolha um companheiro para aparecer no seu perfil. Ele não precisa pagar aluguel, pelo menos.</p>
+        <div class="profile-studio-grid">
+          <label>Espécie<select id="psMascot"><option value="🐸">Sapo</option><option value="🐱">Gato</option><option value="🦊">Raposa</option><option value="🐼">Panda</option><option value="🐉">Dragão</option><option value="🤖">Robô</option><option value="🐢">Tartaruga</option><option value="🦝">Guaxinim</option><option value="🐧">Pinguim</option><option value="🦖">Dinossauro</option><option value="🐙">Polvo</option><option value="🦦">Lontra</option></select></label>
+          <label>Nome do mascote<input id="psMascotName" maxlength="24" placeholder="Ex.: Ferrugem"></label>
+        </div>
+      </section>
+      <section class="profile-studio-section"><h3>Widgets do seu perfil</h3><p>Ative os blocos que quiser e organize a ordem deles.</p>
+        <div class="profile-studio-widget-options">
+          <label><input type="checkbox" data-ps-widget="quote"> Frase do momento</label>
+          <label><input type="checkbox" data-ps-widget="music"> Música favorita</label>
+          <label><input type="checkbox" data-ps-widget="games"> Jogos favoritos</label>
+          <label><input type="checkbox" data-ps-widget="setup"> Meu setup / hobbies</label>
+          <label><input type="checkbox" data-ps-widget="countdown"> Contagem regressiva</label>
+          <label><input type="checkbox" data-ps-widget="links"> Meus links</label>
+          <label><input type="checkbox" data-ps-widget="interests"> Interesses</label>
+          <label><input type="checkbox" data-ps-widget="gallery"> Galeria de fotos</label>
+          <label><input type="checkbox" data-ps-widget="about"> Sobre mim</label>
+          <label><input type="checkbox" data-ps-widget="mascot"> Mascote</label>
+        </div>
+        <div id="psWidgetOrder" class="profile-studio-widget-order" aria-label="Ordem dos widgets"></div>
+      </section>
+      <section class="profile-studio-section"><h3>Conteúdo dos widgets</h3>
+        <div class="profile-studio-grid">
+          <label class="profile-studio-wide">Frase do momento<input id="psQuote" maxlength="180" placeholder="Uma frase que combina contigo"></label>
+          <label>Música / artista<input id="psMusic" maxlength="100" placeholder="Ex.: Metallica · One"></label>
+          <label>Link da música<input id="psMusicUrl" type="url" maxlength="500" placeholder="https://..."></label>
+          <label class="profile-studio-wide">Jogos favoritos<input id="psGames" maxlength="180" placeholder="Ex.: Minecraft, RimWorld, Terraria"></label>
+          <label class="profile-studio-wide">Meu setup ou hobbies<input id="psSetup" maxlength="220" placeholder="Ex.: PC montado por mim, motos e soldagem"></label>
+          <label>Nome da contagem<input id="psCountdownTitle" maxlength="70" placeholder="Ex.: Minha próxima viagem"></label>
+          <label>Data da contagem<input id="psCountdownDate" type="date"></label>
+          <label class="profile-studio-wide">Links (um por linha: nome | URL)<textarea id="psLinks" rows="3" maxlength="1200" placeholder="Meu portfólio | https://exemplo.com"></textarea></label>
+        </div>
+      </section>
+      <footer class="profile-studio-footer"><span id="psStatus" role="status" aria-live="polite"></span><div><button type="button" class="button button-outline" data-close-modal="profileStudioModal">Cancelar</button><button type="submit" class="button button-primary" id="saveProfileStudio">Salvar meu espaço</button></div></footer>
+    </form>
+  </section>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js"></script><script src="community.js"></script><script src="stories.js"></script><script src="games/games.js"></script><script src="games/social-games.js"></script><script src="streaming.js"></script><script src="social-expansion.js"></script><script src="posts.js"></script>
+<script src="script.js"></script><script src="community.js"></script><script src="stories.js"></script><script src="games/games.js"></script><script src="games/social-games.js"></script><script src="streaming.js"></script><script src="social-expansion.js"></script><script src="posts.js"></script><script src="profile-studio.js"></script>
 </body></html>
