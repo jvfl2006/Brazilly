@@ -495,7 +495,7 @@ async function renderModerationReports(){
     controls.append(status,save);card.append(heading,users,details,controls);root.append(card);
   }
 }
-$('logoutButton').addEventListener('click',async()=>{if(!confirm('Deseja sair da sua conta Brazilly neste dispositivo?'))return;const {error}=await db.auth.signOut();if(error){alert(error.message);return;}currentUser=null;currentProfile=null;isModerator=false;updateHeaderAccountButtons();showScreen('homeScreen');alert('Você saiu da sua conta.');});
+$('logoutButton').addEventListener('click',async()=>{if(!confirm('Deseja sair da sua conta Brazilly neste dispositivo?'))return;await window.BrazillySocialExpansion?.leaveVoiceRoom();const {error}=await db.auth.signOut();if(error){alert(error.message);return;}currentUser=null;currentProfile=null;isModerator=false;updateHeaderAccountButtons();showScreen('homeScreen');alert('Você saiu da sua conta.');});
 // Preferências locais. Recursos que exigem servidor são descritos sem simular execução.
 const defaultSettings={theme:'dark',wallpaper:'default',lastSeen:true,online:true,readReceipt:true,mediaDownload:'never'};
 function readSettings(){try{return {...defaultSettings,...JSON.parse(localStorage.getItem(STORAGE.settings)||'{}')};}catch{return {...defaultSettings};}}
