@@ -170,7 +170,13 @@
 <div class="settings-group" id="emailAccountSettingsGroup" hidden><h3>Segurança da conta</h3><p class="field-note">Confirme que você consegue acessar seu e-mail. Isso ajuda a recuperar o acesso à conta e garante que o endereço informado é seu. A confirmação é opcional e você pode continuar usando o Brazilly normalmente.</p><button class="button button-outline full-button" id="settingsEmailVerificationButton">Enviar link de confirmação</button></div><div class="settings-group" id="moderationSettingsGroup" hidden><h3>Administração</h3><button class="button button-outline full-button" id="openModerationButton">Painel de denúncias</button><p class="field-note">Acesso restrito à equipe autorizada.</p></div><div class="settings-group"><h3>Conta e dados</h3><button class="button button-outline full-button" id="editProfileButton">Editar meu perfil</button><button class="button button-outline full-button" id="exportDataButton">Exportar meus dados</button><button class="button button-outline full-button" id="logoutButton">Sair da conta</button><p class="field-note">Sua conta é protegida pelo Supabase. Nunca compartilhe sua senha.</p></div>
 </div></section>
 <section id="moderationScreen" class="screen inner-screen"><div class="settings-container"><header class="inner-header"><button class="back-button" data-screen="settingsScreen">←</button><div><h2>Painel de moderação</h2><span class="status">Denúncias da comunidade</span></div><button class="button button-small button-outline" id="refreshModerationButton">Atualizar</button></header><div id="moderationReportList" class="moderation-report-list"><p class="field-note">Carregando denúncias...</p></div></div></section>
-<section id="profileScreen" class="screen inner-screen"><div class="settings-container"><header class="inner-header"><button class="back-button" data-screen="homeScreen">←</button><div><h2>Seu perfil</h2><span class="status">Sincronizado com sua conta</span></div><button class="button button-small button-outline" id="profileEditButton">Editar</button></header><section class="activity-status-editor" aria-labelledby="activityStatusHeading">
+<section id="profileScreen" class="screen inner-screen"><div class="settings-container"><header class="inner-header"><button class="back-button" data-screen="homeScreen">←</button><div><h2>Seu perfil</h2><span class="status">Sincronizado com sua conta</span></div><button class="button button-small button-outline" id="profileEditButton">Editar</button></header><section class="profile-studio-entry">
+  <div class="profile-studio-entry-copy"><span class="section-kicker">SEU MUNDO</span><h3>Um espaço que tem a sua cara.</h3><p>Decore um ambiente 3D, escolha a iluminação, mova os móveis e transforme seu perfil em um lugar só seu.</p></div>
+  <button type="button" class="button button-primary" id="openProfileStudio">✦ Decorar ambiente</button>
+</section>
+<div id="profileCustomizationPreview" class="profile-customization-preview"></div>
+<div id="profilePreview" class="profile-preview"></div>
+<section class="activity-status-editor" aria-labelledby="activityStatusHeading">
  <div><span class="section-kicker">AGORA</span><h3 id="activityStatusHeading">Seu status de atividade</h3><p>Mostre o que você está fazendo ou se está disponível para conversar.</p></div>
  <div class="activity-status-controls">
   <label for="profileActivityStatus">Status</label>
@@ -185,13 +191,7 @@
   <small id="activityStatusFeedback" aria-live="polite"></small>
  </div>
  </section>
- <div id="profilePreview" class="profile-preview"></div>
-  <section class="profile-studio-entry">
-    <div class="profile-studio-entry-copy"><span class="section-kicker">SEU CANTINHO</span><h3>Personalize seu espaço</h3><p>Monte uma página com sua cara: escolha um tema, organize widgets e adote um mascote.</p></div>
-    <button type="button" class="button button-primary" id="openProfileStudio">✦ Abrir editor</button>
-  </section>
-  <div id="profileCustomizationPreview" class="profile-customization-preview"></div>
-  <section class="profile-social-dashboard"><h3>Quem visitou seu perfil</h3><label class="check-row"><input type="checkbox" id="hideProfileVisits"> Não mostrar minhas visitas nos perfis que eu visualizar</label><div id="myProfileVisits" class="social-visits-list"></div><h3>Conquistas</h3><div id="myAchievements" class="social-achievement-list"></div><h3>Sequências de amizade</h3><div id="myFriendshipStreaks" class="social-visits-list"></div></section></div></section>
+ <section class="profile-social-dashboard"><h3>Quem visitou seu perfil</h3><label class="check-row"><input type="checkbox" id="hideProfileVisits"> Não mostrar minhas visitas nos perfis que eu visualizar</label><div id="myProfileVisits" class="social-visits-list"></div><h3>Conquistas</h3><div id="myAchievements" class="social-achievement-list"></div><h3>Sequências de amizade</h3><div id="myFriendshipStreaks" class="social-visits-list"></div></section></div></section>
 
 <section id="socialHubScreen" class="screen inner-screen social-expansion-screen">
  <div class="social-expansion-container">
@@ -281,53 +281,6 @@
       </div>
     </div>
     <footer class="post-editor-footer"><p id="postEditorStatus" aria-live="polite"></p><div><button type="button" id="cancelPostEditor" class="button button-outline">Cancelar</button><button type="button" id="savePostEditor" class="button button-primary">Salvar alterações</button></div></footer>
-  </section>
-</div>
-<div class="modal-backdrop profile-studio-modal" id="profileStudioModal" hidden>
-  <section class="profile-studio-dialog" role="dialog" aria-modal="true" aria-labelledby="profileStudioTitle">
-    <header class="profile-studio-header"><div><span class="section-kicker">BRAZILLY PROFILE STUDIO</span><h2 id="profileStudioTitle">Monte seu espaço</h2><p>As mudanças só aparecem no seu perfil depois de salvar.</p></div><button type="button" class="modal-close" data-close-modal="profileStudioModal" aria-label="Fechar">×</button></header>
-    <form id="profileStudioForm" class="profile-studio-form">
-      <div class="profile-studio-grid">
-        <label>Estilo do espaço<select id="psTheme"><option value="lofi">Lo-fi aconchegante</option><option value="pixel">Pixel art</option><option value="anime">Anime / vaporwave</option><option value="scrapbook">Scrapbook</option><option value="aurora">Aurora roxa</option><option value="midnight">Meia-noite</option><option value="sunset">Pôr do sol</option><option value="forest">Floresta</option><option value="rose">Rosa elétrico</option></select></label>
-        <label>Cor de destaque<input id="psAccent" type="color" value="#9277ff"></label>
-        <label>Cenário da capa<select id="psCover"><option value="lofi-room">Quarto lo-fi</option><option value="pixel-room">Quarto pixel</option><option value="anime-sky">Céu anime</option><option value="scrapbook">Colagem suave</option><option value="aurora">Aurora</option><option value="nebula">Nebulosa</option><option value="ocean">Oceano</option><option value="sunset">Horizonte</option><option value="forest">Floresta</option><option value="minimal">Minimalista</option></select></label><label>Decoração<select id="psDecor"><option value="none">Sem decoração</option><option value="subtle">Detalhes discretos</option><option value="cozy">Ambiente aconchegante</option></select></label>
-      </div>
-      <section class="profile-studio-section"><h3>Seu mascote</h3><p>Ele fica no cenário, pode receber carinho e reagir a cliques. Não tem fome, energia ou tarefas obrigatórias.</p>
-        <div class="profile-studio-grid">
-          <label>Personagem 3D<select id="psMascot"><option value="🐸">Sapo</option><option value="🐱">Gato</option><option value="🦊">Raposa</option><option value="🐼">Panda</option><option value="🐉">Dragão</option><option value="🤖">Robô</option><option value="🐢">Tartaruga</option><option value="🦝">Guaxinim</option><option value="🐧">Pinguim</option><option value="🦖">Dinossauro</option><option value="🐙">Polvo</option><option value="🦦">Lontra</option></select></label>
-          <label>Nome do mascote<input id="psMascotName" maxlength="24" placeholder="Ex.: Ferrugem"></label>
-          <label class="profile-studio-wide profile-studio-toggle"><input id="psMascotInteractive" type="checkbox" checked> Permitir que visitantes interajam com o mascote</label>
-        </div>
-      </section>
-      <section class="profile-studio-section"><h3>Widgets do seu perfil</h3><p>Ative os blocos que quiser e organize a ordem deles.</p>
-        <div class="profile-studio-widget-options">
-          <label><input type="checkbox" data-ps-widget="quote"> Frase do momento</label>
-          <label><input type="checkbox" data-ps-widget="music"> Música favorita</label>
-          <label><input type="checkbox" data-ps-widget="games"> Jogos favoritos</label>
-          <label><input type="checkbox" data-ps-widget="setup"> Meu setup / hobbies</label>
-          <label><input type="checkbox" data-ps-widget="countdown"> Contagem regressiva</label>
-          <label><input type="checkbox" data-ps-widget="links"> Meus links</label>
-          <label><input type="checkbox" data-ps-widget="interests"> Interesses</label>
-          <label><input type="checkbox" data-ps-widget="gallery"> Galeria de fotos</label>
-          <label><input type="checkbox" data-ps-widget="about"> Sobre mim</label>
-          <label><input type="checkbox" data-ps-widget="mascot"> Mascote</label>
-        </div>
-        <div id="psWidgetOrder" class="profile-studio-widget-order" aria-label="Ordem dos widgets"></div>
-      </section>
-      <section class="profile-studio-section"><h3>Conteúdo dos widgets</h3>
-        <div class="profile-studio-grid">
-          <label class="profile-studio-wide">Frase do momento<input id="psQuote" maxlength="180" placeholder="Uma frase que combina contigo"></label>
-          <label>Música / artista<input id="psMusic" maxlength="100" placeholder="Ex.: Metallica · One"></label>
-          <label>Link da música<input id="psMusicUrl" type="url" maxlength="500" placeholder="https://..."></label>
-          <label class="profile-studio-wide">Jogos favoritos<input id="psGames" maxlength="180" placeholder="Ex.: Minecraft, RimWorld, Terraria"></label>
-          <label class="profile-studio-wide">Meu setup ou hobbies<input id="psSetup" maxlength="220" placeholder="Ex.: PC montado por mim, motos e soldagem"></label>
-          <label>Nome da contagem<input id="psCountdownTitle" maxlength="70" placeholder="Ex.: Minha próxima viagem"></label>
-          <label>Data da contagem<input id="psCountdownDate" type="date"></label>
-          <label class="profile-studio-wide">Links (um por linha: nome | URL)<textarea id="psLinks" rows="3" maxlength="1200" placeholder="Meu portfólio | https://exemplo.com"></textarea></label>
-        </div>
-      </section>
-      <footer class="profile-studio-footer"><span id="psStatus" role="status" aria-live="polite"></span><div><button type="button" class="button button-outline" data-close-modal="profileStudioModal">Cancelar</button><button type="submit" class="button button-primary" id="saveProfileStudio">Salvar meu espaço</button></div></footer>
-    </form>
   </section>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
