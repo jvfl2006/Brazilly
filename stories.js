@@ -68,6 +68,7 @@
       button.classList.toggle('is-selected',mine===reaction);
       button.setAttribute('aria-pressed',String(mine===reaction));
       button.title=reaction+' · '+count+' reação(ões)';
+      button.textContent=count?reaction+' '+count:reaction;
       button.dataset.count=String(count);
     });
     const total=Array.from(counts.values()).reduce((sum,count)=>sum+count,0);
