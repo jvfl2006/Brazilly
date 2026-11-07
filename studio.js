@@ -2,7 +2,7 @@
 'use strict';
 const FILTERS={original:'none',cinema:'contrast(1.12) saturate(.88)',warm:'sepia(.22) saturate(1.18)',mono:'grayscale(1)',vivid:'saturate(1.45) contrast(1.08)',fade:'contrast(.9) saturate(.78) brightness(1.06)'};
 let modal,canvas,ctx,image,currentFile=null,resolveEdit=null,paths=[],drawing=false,settings={brightness:100,contrast:100,saturation:100,warmth:0,filter:'original',ratio:'original',rotation:0,text:'',sticker:''};
-const $=id=>modal?.querySelector('#'+id);
+const $=selector=>modal?.querySelector(selector.startsWith('#')?selector:'#'+selector);
 function ensureModal(){
  if(modal)return;
  const link=document.createElement('link');link.rel='stylesheet';link.href='studio.css';document.head.append(link);
