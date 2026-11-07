@@ -47,7 +47,7 @@
         <div id="gamesRoomsList" class="games-rooms-list"><p class="field-note">Carregando salas...</p></div>
       </section>
       <section id="chessRoomView" class="chess-room-view" hidden>
-        <header class="chess-room-top"><button class="back-button" type="button" id="chessBackToRooms">←</button><div class="chess-room-heading"><h2 id="chessRoomTitle">Sala de xadrez</h2><small id="chessRoomSubtitle">Carregando participantes...</small></div><button class="button button-small button-outline" type="button" id="chessCopyInvite">Copiar código</button></header>
+        <header class="chess-room-top"><button class="back-button" type="button" id="chessBackToRooms">←</button><div class="chess-room-heading"><h2 id="chessRoomTitle">Sala de xadrez</h2><small id="chessRoomSubtitle">Carregando participantes...</small></div><button class="button button-small button-outline" type="button" id="chessCopyInvite">Copiar código</button><button class="button button-small button-outline" type="button" id="chessLeaveRoom">Sair</button></header>
         <div class="chess-room-layout">
           <section class="chess-play-panel">
             <div class="chess-player-bar" id="chessBlackPlayer"></div>
@@ -115,6 +115,12 @@
     catch(error){notice(error.message,true);}
   });
   $g('chessBackToRooms').addEventListener('click',()=>{leaveRoomView();loadRooms();});
+  $g('chessLeaveRoom').addEventListener('click',async()=>{
+    if(!currentRoom||!confirm('Sair desta sala? Se você estiver jogando, a partida será encerrada por desistência.'))return;
+    const roomId=currentRoom;
+    try{await api('leave_room',{room_id:roomId});leaveRoomView();await loadRooms();notice('Você saiu da sala.');}
+    catch(error){notice(error.message,true);}
+  });
   $g('chessCopyInvite').addEventListener('click',async()=>{
     if(!roomState?.room?.invite_code)return;
     try{await navigator.clipboard.writeText(roomState.room.invite_code);notice('Código '+roomState.room.invite_code+' copiado.');}
