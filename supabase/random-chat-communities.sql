@@ -49,7 +49,7 @@ as $find_random_chat$
 declare
  v_me uuid:=auth.uid(); v_session uuid; v_partner uuid; v_name text;
 begin
- if v_me is null then raise exception 'Entre na sua conta para conversar.'; end if;
+ if v_me is null then raise exception 'Entre na sua conta para conversar.'; end if;\n if not exists(select 1 from public.profiles p where p.user_id=v_me and p.birth_date<=current_date-interval '18 years') then\n  raise exception 'Conclua seu perfil e confirme que você tem 18 anos ou mais para usar o chat aleatório.';\n end if;
  perform pg_advisory_xact_lock(hashtext('brazilly_random_chat_matchmaking'));
  select s.id,case when s.user_one=v_me then s.user_two else s.user_one end
  into v_session,v_partner
