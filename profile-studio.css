@@ -850,3 +850,26 @@ body.profile-photo-viewer-open{overflow:hidden}
   grid-column:1;justify-self:start;text-align:left;
  }
 }
+
+
+/* Larger profile portrait, preserving the intended corner anchor. */
+.profile-world-page .profile-world-profile-card .profile-world-card-heading{
+ min-height:198px;
+ padding-left:226px;
+}
+.profile-world-page .profile-world-profile-card .profile-world-header-avatar{
+ width:190px;height:190px;min-width:190px;flex-basis:190px;
+ left:-132px;top:-124px;
+ border-width:7px;
+ box-shadow:0 0 0 9px rgba(150,95,230,.3),0 20px 46px rgba(8,5,24,.5);
+}
+@media(max-width:760px){
+ .profile-world-page .profile-world-profile-card .profile-world-card-heading{
+  min-height:166px;padding-left:136px;
+ }
+ .profile-world-page .profile-world-profile-card .profile-world-header-avatar{
+  width:112px;height:112px;min-width:112px;flex-basis:112px;
+  left:-25px;top:-48px;border-width:5px;
+  box-shadow:0 0 0 6px rgba(150,95,230,.27),0 12px 28px rgba(8,5,24,.44);
+ }
+}
