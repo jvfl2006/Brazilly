@@ -240,7 +240,7 @@ begin
  if not found then raise exception 'Sala privada não encontrada ou encerrada.'; end if;
  select count(*) into v_count from public.voice_room_members where voice_room_members.room_id=v_room.id and user_id<>auth.uid();
  if v_count>=v_room.max_participants then raise exception 'A sala está cheia.'; end if;
- insert into public.voice_room_members(room_id,user_id) values(v_room.id,auth.uid()) on conflict(room_id,user_id) do nothing;
+ insert into public.voice_room_members(room_id,user_id) values(v_room.id,auth.uid()) on conflict on constraint voice_room_members_pkey do nothing;
  return query select v_room.id,v_room.title,v_room.max_participants;
 end; $$;
 revoke all on function public.join_voice_room_by_code(text) from public,anon;
