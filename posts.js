@@ -94,7 +94,7 @@ async function publishPost(event){
    const {error:uploadError}=await db.storage.from('post-media').upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});if(uploadError)throw uploadError;uploaded.push(path);
    const {error:mediaError}=await db.from('post_media').insert({post_id:postId,user_id:currentUser.id,storage_path:path,media_type:file.type.startsWith('video/')?'video':'image',mime_type:file.type,position:i});if(mediaError)throw mediaError;
   }
-  const {error:activityError}=await db.from('social_feed_items').insert({user_id:currentUser.id,item_type:'post_created',reference_id:postId,body:caption||'Compartilhou uma publicação.'});if(activityError)console.warn('Publicação salva, mas não entrou na central social:',activityError.message);closeComposer();await loadPosts();
+  const {error:activityError}=await db.from('social_feed_items').insert({user_id:currentUser.id,item_type:'post_created',reference_id:postId,body:(caption||'Compartilhou uma publicação.').slice(0,500)});if(activityError)console.warn('Publicação salva, mas não entrou na central social:',activityError.message);closeComposer();await loadPosts();
  }catch(error){console.error('Falha ao publicar:',error);if(uploaded.length)await db.storage.from('post-media').remove(uploaded);if(postId)await db.from('posts').delete().eq('id',postId);postNotice('Não foi possível publicar: '+error.message,true);}
  finally{button.disabled=false;$p('closePostComposer').disabled=false;}
 }
