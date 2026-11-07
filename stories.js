@@ -94,3 +94,11 @@
   loadStories();
   window.refreshBrazillyStories=loadStories;
 })();
+
+// Carrega o módulo social de jogos sem acoplar o código ao fluxo de stories.
+(() => {
+  const script = document.createElement('script');
+  script.src = 'games/games.js';
+  script.defer = true;
+  document.body.append(script);
+})();
