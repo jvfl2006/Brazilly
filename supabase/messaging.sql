@@ -74,9 +74,6 @@ $$;
 revoke all on function public.is_blocked_between(uuid,uuid) from public;
 grant execute on function public.is_blocked_between(uuid,uuid) to authenticated;
 
-revoke all on function public.is_blocked_between(uuid,uuid) from public;
-grant execute on function public.is_blocked_between(uuid,uuid) to authenticated;
-
 create or replace function public.list_my_conversations()
 returns table (
   conversation_id uuid,
@@ -88,7 +85,7 @@ language sql
 stable
 security definer
 set search_path = public
-as $list_conversations$
+as $
   select c.id,
     case when c.user_one=auth.uid() then c.user_two else c.user_one end,
     p.display_name,
@@ -99,7 +96,7 @@ as $list_conversations$
   where auth.uid() in (c.user_one,c.user_two)
     and not public.is_blocked_between(c.user_one,c.user_two)
   order by c.updated_at desc;
-$list_conversations$;
+$;
 revoke all on function public.list_my_conversations() from public;
 grant execute on function public.list_my_conversations() to authenticated;
 
