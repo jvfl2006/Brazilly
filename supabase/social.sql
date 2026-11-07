@@ -42,11 +42,7 @@ drop policy if exists friend_requests_send_self on public.friend_requests;
 create policy friend_requests_send_self on public.friend_requests
 for insert to authenticated with check (
   requester_id=auth.uid() and status='pending'
-  and not exists (
-    select 1 from public.user_blocks b
-    where (b.blocker_id=auth.uid() and b.blocked_id=recipient_id)
-       or (b.blocker_id=recipient_id and b.blocked_id=auth.uid())
-  )
+  and not public.is_blocked_between(auth.uid(),recipient_id)
 );
 
 drop policy if exists friend_requests_recipient_update on public.friend_requests;
@@ -84,8 +80,7 @@ begin
    where (requester_id=auth.uid() and recipient_id=p_user_id)
       or (requester_id=p_user_id and recipient_id=auth.uid());
   delete from public.user_favorites
-   where (user_id=auth.uid() and favorite_user_id=p_user_id)
-      or (user_id=p_user_id and favorite_user_id=auth.uid());
+   where user_id=auth.uid() and favorite_user_id=p_user_id;
 end;
 $block$;
 revoke all on function public.block_user(uuid) from public;
