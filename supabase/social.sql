@@ -163,7 +163,7 @@ $requests$;
 revoke all on function public.list_friend_requests() from public;
 grant execute on function public.list_friend_requests() to authenticated;
 
--- Redefine a descoberta para que perfis privados não apareçam a desconhecidos.
+-- Perfis privados aparecem apenas como cartões mínimos até a amizade ser aceita.
 create or replace function public.discover_profiles(
   p_min_age integer default 18,
   p_max_age integer default 99,
@@ -193,7 +193,8 @@ begin
   with candidates as (
     select pr.user_id,pr.display_name,
       extract(year from age(current_date,pr.birth_date))::integer as calculated_age,
-      case when pr.show_age then extract(year from age(current_date,pr.birth_date))::integer else null end as public_age,
+      case when (not pr.is_private or public.can_view_profile(pr.user_id)) and pr.show_age
+        then extract(year from age(current_date,pr.birth_date))::integer else null end as public_age,
       case when not pr.is_private or public.can_view_profile(pr.user_id) then pr.gender else null end as public_gender,
       case when not pr.is_private or public.can_view_profile(pr.user_id) then pr.bio else 'Perfil privado · envie uma solicitação de amizade.' end as public_bio,
       case when (not pr.is_private or public.can_view_profile(pr.user_id)) and pr.show_city then pr.city else null end as public_city,
@@ -205,12 +206,14 @@ begin
       case when not pr.is_private or public.can_view_profile(pr.user_id) then
         coalesce((select array_agg(pp.storage_path order by pp.sort_order) from public.profile_photos pp where pp.user_id=pr.user_id),'{}'::text[])
         else '{}'::text[] end as photo_list,
-      ((case when p_gender is not null and pr.gender=p_gender then 1 else 0 end)+
-       (case when p_intention is not null and p_intention=any(pr.intentions) then 1 else 0 end)+
-       (case when p_interest is not null and exists(select 1 from public.user_interests ui where ui.user_id=pr.user_id and ui.interest_name ilike '%'||p_interest||'%') then 1 else 0 end)+
-       (case when p_city is not null and pr.show_city and pr.city ilike '%'||p_city||'%' then 1 else 0 end)+
-       (case when p_education is not null and pr.education=p_education then 1 else 0 end)+
-       (case when p_exercise is not null and pr.exercise_frequency=p_exercise then 1 else 0 end))::integer as score
+      case when pr.is_private and not public.can_view_profile(pr.user_id) then 0 else
+        ((case when p_gender is not null and pr.gender=p_gender then 1 else 0 end)+
+         (case when p_intention is not null and p_intention=any(pr.intentions) then 1 else 0 end)+
+         (case when p_interest is not null and exists(select 1 from public.user_interests ui where ui.user_id=pr.user_id and ui.interest_name ilike '%'||p_interest||'%') then 1 else 0 end)+
+         (case when p_city is not null and pr.show_city and pr.city ilike '%'||p_city||'%' then 1 else 0 end)+
+         (case when p_education is not null and pr.education=p_education then 1 else 0 end)+
+         (case when p_exercise is not null and pr.exercise_frequency=p_exercise then 1 else 0 end))::integer
+      end as score
     from public.profiles pr
     where pr.user_id<>v_uid
       and extract(year from age(current_date,pr.birth_date)) between p_min_age and p_max_age
