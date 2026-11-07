@@ -507,3 +507,8 @@ body.story-view-open{overflow:hidden}
 .profile-activity-status,.profile-card-activity{display:inline-flex;align-items:center;width:fit-content;margin:5px 0;padding:5px 9px;border:1px solid #8068ed55;border-radius:20px;background:#8068ed16;color:var(--accent2);font-size:11px}
 .profile-card-activity{font-size:10px}.profile-info .profile-card-activity{color:var(--accent2)}
 @media(max-width:640px){.activity-status-editor{grid-template-columns:1fr;gap:10px}}
+
+
+/* Owner-only deletion controls */
+.room-delete-button,.community-delete-button{white-space:nowrap;border-color:rgba(220,90,110,.35);color:var(--danger,#dc5a6e)}
+.room-delete-button:hover,.community-delete-button:hover{background:rgba(220,90,110,.1)}
