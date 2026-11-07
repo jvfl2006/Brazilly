@@ -177,24 +177,29 @@ function enhanceProfileCard(stage,preview,settings={}){
  if(bioNode)aboutMain.append(el('h3','profile-world-section-title','Sobre mim'),bioNode);
  if(details.childElementCount)aboutMain.append(el('h3','profile-world-section-title','Mais sobre mim'),details);
  if(!aboutMain.childElementCount)aboutMain.append(el('p','profile-world-empty','Este perfil ainda não tem uma descrição.'));
+ const galleryCard=el('section','profile-world-side-card profile-world-gallery-card');
+ galleryCard.append(el('div','profile-world-side-heading',el('span','profile-world-side-eyebrow','MOMENTOS'),el('h3','profile-world-section-title','Fotos recentes')));
  if(photosNode){
   const previewGallery=photosNode.cloneNode(true);
   previewGallery.classList.add('profile-world-mini-gallery');
-  aboutAside.append(el('h3','profile-world-section-title','Fotos recentes'),previewGallery);
+  galleryCard.append(previewGallery);
   photosPanel.append(el('h3','profile-world-section-title','Minha galeria'),photosNode);
  }else{
-  aboutAside.append(el('h3','profile-world-section-title','Fotos recentes'),el('p','profile-world-empty','Ainda não há fotos publicadas.'));
+  galleryCard.append(el('p','profile-world-empty','Ainda não há fotos publicadas.'));
   photosPanel.append(el('p','profile-world-empty','Ainda não há fotos publicadas.'));
  }
+ const interestsCard=el('section','profile-world-side-card profile-world-interests-card');
+ interestsCard.append(el('div','profile-world-side-heading',el('span','profile-world-side-eyebrow','O QUE EU CURTO'),el('h3','profile-world-section-title','Interesses')));
  if(tagsNode){
   const previewTags=tagsNode.cloneNode(true);
   previewTags.classList.add('profile-world-mini-tags');
-  aboutAside.append(el('h3','profile-world-section-title','Interesses'),previewTags);
+  interestsCard.append(previewTags);
   interestsPanel.append(el('h3','profile-world-section-title','Meus interesses'),tagsNode);
  }else{
-  aboutAside.append(el('h3','profile-world-section-title','Interesses'),el('p','profile-world-empty','Adicione seus interesses ao perfil.'));
+  interestsCard.append(el('p','profile-world-empty','Adicione seus interesses ao perfil.'));
   interestsPanel.append(el('p','profile-world-empty','Os interesses ainda não foram adicionados.'));
  }
+ aboutAside.append(galleryCard,interestsCard);
  aboutGrid.append(aboutMain,aboutAside);about.append(aboutGrid);
  const universeItems=[['Jogos favoritos',settings.games],['Hobbies e setup',settings.setup],['Música',settings.music],['Frase do momento',settings.quote]];
  const populated=universeItems.filter(([,value])=>String(value||'').trim());
