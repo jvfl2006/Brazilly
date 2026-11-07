@@ -250,7 +250,7 @@
   }
   function renderGame(){
     const game=roomState?.game;
-    chess=game?new Chess(game.fen):null;selectedSquare=null;legalTargets=[];
+    chess=game?new ChessCtor(game.fen):null;selectedSquare=null;legalTargets=[];
     const status=$g('chessGameStatus'),resign=$g('chessResignButton');
     if(!game){status.textContent='A sala está pronta. O anfitrião pode iniciar quando houver dois jogadores.';resign.hidden=true;$g('chessMoveHistory').textContent='Nenhuma jogada ainda.';renderBoard();return;}
     const me=roomState.members.find(m=>m.user_id===currentUser?.id);
