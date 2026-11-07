@@ -387,7 +387,8 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     itemGroups.delete(id);settings.room.items=settings.room.items.filter(x=>x.id!==id);setSelected(null);
   }
   function showObjectInfo(type){
-    const content=$ps('profileWorldInfoContent'),panel=$ps('profileWorldInfoPanel');
+    const localRoot=stage.closest('.profile-custom-shell');
+    const content=localRoot?.querySelector('.profile-world-info-content'),panel=localRoot?.querySelector('.profile-world-info-panel');
     if(!content||!panel)return;
     content.replaceChildren();
     const titles={sofa:'Sobre mim',beanbag:'Sobre mim',desk:'Meu setup e hobbies',shelf:'Jogos favoritos',plant:'Meus interesses',lamp:'Frase do momento',frame:'Minha galeria',poster:'Minha galeria',radio:'Minha música',speaker:'Minha música',rug:'Meu cantinho',calendar:'Minha contagem regressiva',board:'Meus links'};
@@ -511,9 +512,9 @@ function createWorldMarkup(profile,settings,photos,editable){
   identity.append(avatar,element('div','world-identity-copy',profile.display_name||profile.name||'Meu espaço'));
   if(profile.city)identity.append(element('small','world-identity-location',profile.city));
   stage.append(top,identity);
-  let panel=element('aside','profile-world-info-panel');panel.id='profileWorldInfoPanel';panel.hidden=true;
+  let panel=element('aside','profile-world-info-panel');panel.hidden=true;
   const close=element('button','world-info-close','×');close.type='button';close.setAttribute('aria-label','Fechar detalhes');
-  const info=element('div','world-info-content');info.id='profileWorldInfoContent';panel.append(close,info);stage.append(panel);
+  const info=element('div','world-info-content profile-world-info-content');panel.append(close,info);stage.append(panel);
   close.addEventListener('click',()=>panel.hidden=true);
   if(editable){
     const edit=element('button','world-edit-trigger','✦ Decorar meu espaço');edit.type='button';edit.addEventListener('click',()=>{const panel=$ps('profileWorldEditor');setEditMode(!panel||panel.hidden);});stage.append(edit);
