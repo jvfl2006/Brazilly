@@ -280,6 +280,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     camera.lookAt(0,1.38,-.1);camera.updateProjectionMatrix();
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,settings.theme==='pixel'?1:1.5));
     renderer.setSize(Math.round(w*(settings.theme==='pixel'?.58:1)),Math.round(h*(settings.theme==='pixel'?.58:1)),false);
+    if(reducedMotion&&renderer.domElement.isConnected)renderer.render(scene,camera);
     renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
   };
   const resizeObserver=new ResizeObserver(aspectCamera);resizeObserver.observe(stage);aspectCamera();
@@ -293,6 +294,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     fill.color.set(settings.room.time==='night'?'#657fcb':'#a6c9ff');
     ceilingGlow.color.set(p.key);lampGlow.color.set('#ffd5a0');
     dust.material.color.set(settings.accent);
+    if(reducedMotion)renderer.render(scene,camera);
     const shell=stage.closest('.profile-custom-shell');shell.dataset.theme=settings.theme;shell.style.setProperty('--profile-accent',settings.accent);
     aspectCamera();
   };
@@ -313,7 +315,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     const item=settings.room.items.find(x=>x.id===id),group=itemGroups.get(id);
     selectionRing.visible=Boolean(item&&group);
     if(item&&group)selectionRing.position.set(item.x,.045,item.z);
-    updateSelectionControls();
+    updateSelectionControls();if(reducedMotion)renderer.render(scene,camera);
   }
   function updateSelectionControls(){
     const label=$ps('worldSelectedObjectName');
@@ -326,7 +328,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     const item=settings.room.items.find(o=>o.id===state.selectedId),group=itemGroups.get(state.selectedId);
     if(!item||!group)return;
     item.x=Math.max(-4.65,Math.min(4.65,x));item.z=Math.max(-3.5,Math.min(3.0,z));
-    group.position.x=item.x;group.position.z=item.z;selectionRing.position.set(item.x,.045,item.z);
+    group.position.x=item.x;group.position.z=item.z;selectionRing.position.set(item.x,.045,item.z);if(reducedMotion)renderer.render(scene,camera);
   }
   function onPointerDown(event){
     if(state.stopped||event.target!==renderer.domElement)return;canvasPoint(event);
@@ -382,12 +384,12 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   }
   function rotateSelected(){
     const item=settings.room.items.find(x=>x.id===state.selectedId),group=itemGroups.get(state.selectedId);
-    if(!item||!group)return;item.rotation=(item.rotation+Math.PI/4)%(Math.PI*2);group.rotation.y=item.rotation;
+    if(!item||!group)return;item.rotation=(item.rotation+Math.PI/4)%(Math.PI*2);group.rotation.y=item.rotation;if(reducedMotion)renderer.render(scene,camera);
   }
   function removeSelected(){
     if(!state.selectedId)return;
     const id=state.selectedId,group=itemGroups.get(id);if(group)furnitureRoot.remove(group);
-    itemGroups.delete(id);settings.room.items=settings.room.items.filter(x=>x.id!==id);setSelected(null);
+    itemGroups.delete(id);settings.room.items=settings.room.items.filter(x=>x.id!==id);setSelected(null);if(reducedMotion)renderer.render(scene,camera);
   }
   function showObjectInfo(type){
     const localRoot=stage.closest('.profile-custom-shell');
@@ -448,8 +450,9 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   function animate(){
     if(state.stopped||!renderer.domElement.isConnected){dispose();return;}
     if(!state.visible||document.hidden){state.raf=0;return;}
+    if(reducedMotion){renderer.render(scene,camera);return;}
     state.raf=requestAnimationFrame(animate);
-    const t=reducedMotion?0:performance.now()*.001;
+    const t=performance.now()*.001;
     if(!reducedMotion){camera.position.x+=(baseCameraPosition.x+parallax.x*.24-camera.position.x)*.025;camera.position.y+=(baseCameraPosition.y-parallax.y*.13-camera.position.y)*.025;camera.lookAt(parallax.x*.13,1.38-parallax.y*.06,-.1);}
     dust.rotation.y=Math.sin(t*.08)*.1;
     sun.position.y=.64+Math.sin(t*.12)*.05;
