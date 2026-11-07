@@ -27,8 +27,8 @@ create index if not exists random_chat_messages_session_idx
  on public.random_chat_messages(session_id,created_at);
 alter table public.random_chat_queue enable row level security;
 alter table public.random_chat_sessions enable row level security;
-alter table public.random_chat_messages enable row level security;
-revoke all on public.random_chat_queue,public.random_chat_sessions,public.random_chat_messages from anon,authenticated;
+alter table public.random_chat_messages enable row level security;\ndrop policy if exists random_chat_sessions_participants_read on public.random_chat_sessions;\ncreate policy random_chat_sessions_participants_read on public.random_chat_sessions for select to authenticated using(auth.uid() in(user_one,user_two));
+revoke all on public.random_chat_queue from anon,authenticated;\nrevoke all on public.random_chat_sessions from anon,authenticated;\ngrant select on public.random_chat_sessions to authenticated;\nrevoke all on public.random_chat_messages from anon,authenticated;
 grant select,insert on public.random_chat_messages to authenticated;
 drop policy if exists random_chat_messages_participants_read on public.random_chat_messages;
 create policy random_chat_messages_participants_read on public.random_chat_messages
@@ -78,7 +78,7 @@ begin
   return jsonb_build_object('status','matched','session_id',v_session,'partner_id',v_partner,'partner_name',coalesce(v_name,'Pessoa'));
  end if;
  insert into public.random_chat_queue(user_id) values(v_me)
- on conflict(user_id) do update set joined_at=now();
+ on conflict(user_id) do nothing;
  return jsonb_build_object('status','waiting');
 end;
 $find_random_chat$;
@@ -174,7 +174,7 @@ begin
   if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='random_chat_messages') then
    alter publication supabase_realtime add table public.random_chat_messages;
   end if;
-  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='community_messages') then
+  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='random_chat_sessions') then\n   alter publication supabase_realtime add table public.random_chat_sessions;\n  end if;\n  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='community_messages') then
    alter publication supabase_realtime add table public.community_messages;
   end if;
  end if;
