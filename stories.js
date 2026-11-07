@@ -107,6 +107,7 @@
     $('storyViewerName').textContent=story.display_name||'Story';$('storyViewerCaption').textContent=story.caption||'';
     $('storyViewerProgress').style.width='0%';image.src=await signedUrl(story.media_path);
     currentStoryId=story.story_id;
+    const replyForm=$('storyReplyForm');if(replyForm)replyForm.hidden=story.user_id===currentUser.id;
     await renderStoryReactions(story);
     if(story.user_id!==currentUser.id&&!story.viewed_by_me){
       const {error}=await db.from('story_views').insert({story_id:story.story_id,viewer_id:currentUser.id});
