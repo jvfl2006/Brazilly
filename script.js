@@ -25,10 +25,15 @@ async function refreshModerationAccess(){
   updateHeaderAccountButtons();
 }
 function updateHeaderAccountButtons(){
-  $('signupButton').hidden=Boolean(currentProfile);
+  const loggedIn=Boolean(currentUser);
+  $('signupButton').hidden=loggedIn;
+  $('heroSignupButton').hidden=loggedIn;
+  $('heroLoginButton').hidden=loggedIn;
+  $('featureSignupButton').hidden=loggedIn;
+  document.querySelector('.auth-switch-prompt')?.toggleAttribute('hidden',loggedIn);
   $('moderationSettingsGroup').hidden=!isModerator;
-  $('emailAccountSettingsGroup').hidden=!currentUser;
-  $('loginButton').textContent=currentUser?(currentProfile?'Minha conta':'Completar perfil'):'Entrar';
+  $('emailAccountSettingsGroup').hidden=!loggedIn;
+  $('loginButton').textContent=loggedIn?(currentProfile?'Minha conta':'Completar perfil'):'Entrar';
 }
 async function sendEmailVerificationLink(){
   if(!currentUser?.email){alert('Entre na sua conta primeiro.');return;}
