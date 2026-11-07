@@ -66,11 +66,11 @@ language sql
 stable
 security definer
 set search_path = public
-as $
+as $$
   select exists(select 1 from public.user_blocks
     where (blocker_id=p_user_a and blocked_id=p_user_b)
        or (blocker_id=p_user_b and blocked_id=p_user_a));
-$;
+$$;
 revoke all on function public.is_blocked_between(uuid,uuid) from public;
 grant execute on function public.is_blocked_between(uuid,uuid) to authenticated;
 
@@ -108,11 +108,13 @@ create policy messages_mark_received_read on public.messages
 for update to authenticated using (
   sender_id <> auth.uid()
   and exists(select 1 from public.conversations c where c.id=conversation_id
-    and (auth.uid()=c.user_one or auth.uid()=c.user_two))
+    and (auth.uid()=c.user_one or auth.uid()=c.user_two)
+    and not public.is_blocked_between(c.user_one,c.user_two))
 ) with check (
   sender_id <> auth.uid()
   and exists(select 1 from public.conversations c where c.id=conversation_id
-    and (auth.uid()=c.user_one or auth.uid()=c.user_two))
+    and (auth.uid()=c.user_one or auth.uid()=c.user_two)
+    and not public.is_blocked_between(c.user_one,c.user_two))
 );
 
 grant select on public.conversations to authenticated;
