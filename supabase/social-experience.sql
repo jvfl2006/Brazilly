@@ -77,13 +77,15 @@ drop policy if exists community_message_reads_member_select on public.community_
 create policy community_message_reads_member_select on public.community_message_reads for select to authenticated using(exists(select 1 from public.community_members m where m.community_id=community_message_reads.community_id and m.user_id=auth.uid()));
 drop policy if exists community_message_reads_self_insert on public.community_message_reads;
 create policy community_message_reads_self_insert on public.community_message_reads for insert to authenticated with check(user_id=auth.uid() and exists(select 1 from public.community_members m where m.community_id=community_message_reads.community_id and m.user_id=auth.uid()) and exists(select 1 from public.community_messages cm where cm.id=message_id and cm.community_id=community_message_reads.community_id and cm.sender_id<>auth.uid()));
+drop function if exists public.get_community_messages(uuid);
 create or replace function public.get_community_messages(p_community_id uuid)
-returns table(message_id uuid,sender_id uuid,sender_name text,body text,created_at timestamptz,read_count bigint)
+returns table(message_id uuid,sender_id uuid,sender_name text,body text,created_at timestamptz,read_count bigint,member_count bigint)
 language plpgsql security definer set search_path=public as $community_feed$
 begin
  if auth.uid() is null or not exists(select 1 from public.community_members m where m.community_id=p_community_id and m.user_id=auth.uid()) then raise exception 'Você não participa desta comunidade.'; end if;
  return query select cm.id,cm.sender_id,coalesce(p.display_name,'Pessoa'),cm.body,cm.created_at,
- (select count(*) from public.community_message_reads r where r.message_id=cm.id)
+ (select count(*) from public.community_message_reads r where r.message_id=cm.id),
+  (select count(*) from public.community_members m where m.community_id=cm.community_id)
  from public.community_messages cm left join public.profiles p on p.user_id=cm.sender_id
  where cm.community_id=p_community_id order by cm.created_at asc limit 300;
 end;
