@@ -99,6 +99,32 @@ async function sendEmailVerificationLink(){
 $('sendEmailVerificationButton').addEventListener('click',sendEmailVerificationLink);
 $('settingsEmailVerificationButton').addEventListener('click',sendEmailVerificationLink);
 $('skipEmailVerificationButton').addEventListener('click',()=>closeModal('emailVerificationModal'));
+const presentationSlides=[...document.querySelectorAll('.presentation-slide')];
+let activePresentationSlide=0;
+function updatePresentation(){
+  if(!presentationSlides.length)return;
+  const progress=$('presentationProgressBar');
+  if(progress)progress.style.width=((activePresentationSlide+1)/presentationSlides.length*100)+'%';
+  $('presentationSlideLabel').textContent=(activePresentationSlide+1)+' de '+presentationSlides.length;
+  $('presentationPrev').disabled=activePresentationSlide===0;
+  $('presentationNext').textContent=activePresentationSlide===presentationSlides.length-1?'Voltar ao início':'Próximo →';
+}
+function goToPresentationSlide(index){
+  activePresentationSlide=Math.max(0,Math.min(presentationSlides.length-1,index));
+  const root=$('presentationSlides'),slide=presentationSlides[activePresentationSlide];
+  root.scrollTo({top:slide.offsetTop-root.offsetTop,behavior:'smooth'});
+  updatePresentation();
+}
+$('presentationPrev').addEventListener('click',()=>goToPresentationSlide(activePresentationSlide-1));
+$('presentationNext').addEventListener('click',()=>activePresentationSlide===presentationSlides.length-1?showScreen('homeScreen'):goToPresentationSlide(activePresentationSlide+1));
+$('presentationSlides').addEventListener('scroll',()=>{
+  const root=$('presentationSlides'),top=root.getBoundingClientRect().top;
+  let closest=0,best=Infinity;
+  presentationSlides.forEach((slide,index)=>{const distance=Math.abs(slide.getBoundingClientRect().top-top);if(distance<best){best=distance;closest=index;}});
+  activePresentationSlide=closest;updatePresentation();
+},{passive:true});
+updatePresentation();
+
 function showScreen(id) {
   screens.forEach(s => s.classList.toggle('active', s.id === id));
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -108,6 +134,7 @@ function showScreen(id) {
   if (id === 'messagesScreen') { renderConversationList(); scheduleUnreadRefresh(); }
   if (id === 'profileScreen') renderProfilePreview();
   if (id === 'moderationScreen') renderModerationReports();
+  if (id === 'howItWorksScreen') { activePresentationSlide=0; goToPresentationSlide(0); }
 }
 document.querySelectorAll('[data-screen]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); showScreen(el.dataset.screen); }));
 document.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', () => showScreen(el.dataset.open)));
