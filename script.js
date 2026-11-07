@@ -510,16 +510,16 @@ async function compressChatImage(file,quality){
   if(!blob)throw new Error('Não foi possível processar a imagem.');
   return blob;
 }
-async function sendChatMedia(blob,type,mime){
-  if(!currentUser||!activeConversationId)throw new Error('Abra uma conversa antes de enviar mídia.');
+async function sendChatMedia(blob,type,mime,targetConversationId=activeConversationId){
+  if(!currentUser||!targetConversationId)throw new Error('Abra uma conversa antes de enviar mídia.');
   if(blob.size>15*1024*1024)throw new Error('O arquivo excede o limite de 15 MB.');
   const extension=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','audio/webm':'webm','audio/ogg':'ogg','audio/mp4':'m4a','audio/mpeg':'mp3','audio/wav':'wav' })[mime]||'bin';
-  const path=activeConversationId+'/'+currentUser.id+'/'+crypto.randomUUID()+'.'+extension;
+  const path=targetConversationId+'/'+currentUser.id+'/'+crypto.randomUUID()+'.'+extension;
   const {error:uploadError}=await db.storage.from('chat-media').upload(path,blob,{contentType:mime,upsert:false,cacheControl:'3600'});
   if(uploadError)throw uploadError;
   const labels={image:'Imagem',audio:'Áudio',gif:'GIF',sticker:'Figurinha'};
   const {error:messageError}=await db.from('messages').insert({
-    conversation_id:activeConversationId,sender_id:currentUser.id,
+    conversation_id:targetConversationId,sender_id:currentUser.id,
     body:labels[type]||'Mídia',message_type:type,media_path:path,
     media_mime:mime,media_size:blob.size,media_blurred:['image','gif','sticker'].includes(type)
   });
@@ -546,16 +546,17 @@ $('chatGifInput').addEventListener('change',async e=>{
 const emojis=['😀','😂','🥹','😍','😎','🤔','😭','😡','🤝','👍','👎','❤️','🔥','🎉','💀','🤡','🚀','🐸','🐱','🏍️','⚙️','🍕','☕','✨'];
 emojis.forEach(emoji=>{
   const button=document.createElement('button');button.type='button';button.textContent=emoji;button.setAttribute('aria-label','Inserir '+emoji);
-  button.addEventListener('click',()=>{$('directMessageInput').value+='' ;$('directMessageInput').value += emoji;$('directMessageInput').focus();});
+  button.addEventListener('click',()=>{$('directMessageInput').value += emoji;$('directMessageInput').focus();});
   $('emojiTray').append(button);
 });
 $('emojiToggle').addEventListener('click',()=>{$('emojiTray').hidden=!$('emojiTray').hidden;});
-let audioRecorder=null,audioChunks=[];
+let audioRecorder=null,audioChunks=[],recordingConversationId=null;
 $('recordAudioButton').addEventListener('click',async()=>{
   const button=$('recordAudioButton'),status=$('audioRecordStatus');
   if(audioRecorder?.state==='recording'){audioRecorder.stop();button.textContent='● Gravar áudio';status.textContent='Processando áudio...';return;}
   if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){alert('Gravação de áudio não é compatível com este navegador.');return;}
   try{
+    recordingConversationId=activeConversationId;
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     const preferred=['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/mp4'].find(type=>MediaRecorder.isTypeSupported(type));
     audioRecorder=new MediaRecorder(stream,preferred?{mimeType:preferred}:undefined);audioChunks=[];
@@ -563,7 +564,7 @@ $('recordAudioButton').addEventListener('click',async()=>{
     audioRecorder.onstop=async()=>{
       stream.getTracks().forEach(track=>track.stop());
       const blob=new Blob(audioChunks,{type:audioRecorder.mimeType||'audio/webm'});
-      try{await sendChatMedia(blob,'audio',blob.type.split(';')[0]);status.textContent='Áudio enviado.';}
+      try{await sendChatMedia(blob,'audio',blob.type.split(';')[0],recordingConversationId);recordingConversationId=null;status.textContent='Áudio enviado.';}
       catch(error){status.textContent='';alert('Falha ao enviar áudio: '+error.message);}
       audioRecorder=null;
     };
