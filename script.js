@@ -158,7 +158,7 @@ async function fetchProfileFromServer(){
   ]);
   if(interestError)throw interestError;if(photoError)throw photoError;
   const loadedPhotos=[];
-  for(const photo of photoRows||[]){const {data}=db.storage.from('profile-photos').getPublicUrl(photo.storage_path);try{const response=await fetch(data.publicUrl);const blob=await response.blob();const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob);});loadedPhotos.push({name:'Foto do perfil',data:dataUrl,storagePath:photo.storage_path});}catch{loadedPhotos.push({name:'Foto do perfil',data:data.publicUrl,storagePath:photo.storage_path});}}
+  for(const photo of photoRows||[]){const {data:signed,error:signedError}=await db.storage.from('profile-photos').createSignedUrl(photo.storage_path,3600);if(signedError||!signed?.signedUrl){console.warn('Não foi possível abrir uma foto do perfil:',signedError);continue;}try{const response=await fetch(signed.signedUrl);if(!response.ok)throw new Error('Falha ao baixar foto');const blob=await response.blob();const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob);});loadedPhotos.push({name:'Foto do perfil',data:dataUrl,storagePath:photo.storage_path});}catch(error){console.warn('Não foi possível carregar uma foto do perfil:',error);}}
   const saved=readSettings();localStorage.setItem(STORAGE.settings,JSON.stringify({...saved,lastSeen:row.last_seen_visible,online:row.online_visible,readReceipt:row.read_receipts,mediaDownload:row.media_download}));initSettings();
   currentProfile={name:row.display_name,email:currentUser.email,birthDate:row.birth_date,age:calculateAge(row.birth_date),gender:row.gender||'',sexuality:row.sexuality||'',height:row.height_cm||'',education:row.education||'',zodiac:zodiac(row.birth_date),personality:row.personality_mbti||'',pets:row.pets||'',children:row.children||'',bio:row.bio||'',interests:(interestRows||[]).map(x=>x.interest_name),photos:loadedPhotos,drink:row.drink_frequency||'',smoke:row.tobacco_frequency||'',exercise:row.exercise_frequency||'',intentions:row.intentions||[],city:row.city||'',showAge:row.show_age,showCity:row.show_city};
   return currentProfile;
@@ -206,7 +206,7 @@ async function renderProfiles(){
     const {data,error}=await db.rpc('discover_profiles',args);if(error)throw error;root.innerHTML='';
     $('activeFilterSummary').textContent=Object.values(f).some(v=>v!==''&&v!==false&&v!=='all')?`Filtros aplicados · ${f.strict?'correspondência rigorosa':'priorização por afinidade'}`:'Nenhum filtro aplicado.';
     if(!data?.length){root.textContent='Ainda não encontramos perfis com esses critérios. Tente ampliar os filtros.';return;}
-    data.forEach(p=>{const card=document.createElement('article');card.className='profile-card';card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label',`Abrir perfil de ${p.display_name}`);card.addEventListener('click',()=>openProfileDetails(p));card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openProfileDetails(p);}});const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent=(p.display_name||'?')[0].toUpperCase();const info=document.createElement('div');info.className='profile-info';const title=document.createElement('h3');title.textContent=`${p.display_name}${p.age?`, ${p.age}`:''}`;const bio=document.createElement('p');bio.textContent=p.bio||'Ainda não adicionou uma descrição.';const tags=document.createElement('p');tags.textContent=(p.interests||[]).join(' · ');const note=document.createElement('span');note.textContent=p.city||'Localização não informada';info.append(title,bio,tags,note);if(p.photo_paths?.length){const img=document.createElement('img');img.src=db.storage.from('profile-photos').getPublicUrl(p.photo_paths[0]).data.publicUrl;img.alt=`Foto de ${p.display_name}`;img.style.cssText='width:64px;height:64px;object-fit:cover;border-radius:12px;margin-right:12px';card.append(img);}card.append(avatar,info);root.append(card);});
+    for(const p of data){const card=document.createElement('article');card.className='profile-card';card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label',`Abrir perfil de ${p.display_name}`);card.addEventListener('click',()=>openProfileDetails(p));card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openProfileDetails(p);}});const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent=(p.display_name||'?')[0].toUpperCase();const info=document.createElement('div');info.className='profile-info';const title=document.createElement('h3');title.textContent=`${p.display_name}${p.age?`, ${p.age}`:''}`;const bio=document.createElement('p');bio.textContent=p.bio||'Ainda não adicionou uma descrição.';const tags=document.createElement('p');tags.textContent=(p.interests||[]).join(' · ');const note=document.createElement('span');note.textContent=p.city||'Localização não informada';info.append(title,bio,tags,note);if(p.photo_paths?.length){const img=document.createElement('img');const {data:photoUrl}=await db.storage.from('profile-photos').createSignedUrl(p.photo_paths[0],3600);img.src=photoUrl?.signedUrl||'';img.alt=`Foto de ${p.display_name}`;img.style.cssText='width:64px;height:64px;object-fit:cover;border-radius:12px;margin-right:12px';if(img.src)card.append(img);}card.append(avatar,info);root.append(card);}
   }catch(error){console.error(error);root.textContent=`Não foi possível carregar os perfis: ${error.message}. Verifique se o SQL de configuração foi executado no Supabase.`;}
 }
 $('openFilters').addEventListener('click',()=>{const f=getFilters();$('filterAgeMin').value=f.min||18;$('filterAgeMax').value=f.max||99;$('filterGender').value=f.gender||'all';$('filterIntent').value=f.intent||'all';$('filterInterest').value=f.interest||'';$('filterEducation').value=f.education||'all';$('filterLifestyle').value=f.lifestyle||'all';$('filterCity').value=f.city||'';$('filterPhotos').checked=Boolean(f.photos);$('strictFilters').checked=Boolean(f.strict);openModal('filterModal');});
@@ -219,18 +219,20 @@ let activeConversationId = null;
 let activeConversationChannel = null;
 const messageCache = new Set();
 
-function openProfileDetails(p) {
+async function openProfileDetails(p) {
   selectedPublicProfile = p;
   const root = $('profileDetailContent');
   root.innerHTML = '';
   const photos = document.createElement('div');
   photos.className = 'detail-photos';
-  (p.photo_paths || []).forEach(path => {
+  for (const path of (p.photo_paths || [])) {
+    const {data:photoUrl,error} = await db.storage.from('profile-photos').createSignedUrl(path,3600);
+    if(error || !photoUrl?.signedUrl) continue;
     const img = document.createElement('img');
-    img.src = db.storage.from('profile-photos').getPublicUrl(path).data.publicUrl;
+    img.src = photoUrl.signedUrl;
     img.alt = 'Foto do perfil';
     photos.append(img);
-  });
+  }
   if (photos.childElementCount) root.append(photos);
   const title = document.createElement('h2');
   title.id = 'profileDetailName';
