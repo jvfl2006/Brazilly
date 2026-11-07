@@ -131,14 +131,22 @@
   };
 
   function refreshSignupLabels() {
-    if (currentUser && currentProfile) {
-      if ($('signupButton')) $('signupButton').textContent = 'Meu perfil';
-      if ($('heroSignupButton')) $('heroSignupButton').textContent = 'Editar meu perfil ↗';
-      if ($('featureSignupButton')) $('featureSignupButton').textContent = 'Editar meu perfil →';
-    } else {
-      if ($('signupButton')) $('signupButton').textContent = 'Criar perfil';
-      if ($('heroSignupButton')) $('heroSignupButton').textContent = 'Criar meu perfil ↗';
-      if ($('featureSignupButton')) $('featureSignupButton').textContent = 'Criar meu perfil →';
+    const hasProfile = Boolean(currentUser && currentProfile);
+    const headerButton = $('signupButton');
+    const heroButton = $('heroSignupButton');
+    const featureButton = $('featureSignupButton');
+    if (headerButton) {
+      headerButton.textContent = hasProfile ? 'Meu perfil' : 'Criar perfil';
+      headerButton.classList.toggle('button-primary', !hasProfile);
+      headerButton.classList.toggle('button-outline', hasProfile);
+    }
+    if (heroButton) {
+      heroButton.textContent = hasProfile ? 'Editar meu perfil ↗' : 'Criar meu perfil ↗';
+      heroButton.classList.toggle('button-primary', !hasProfile);
+      heroButton.classList.toggle('button-outline', hasProfile);
+    }
+    if (featureButton) {
+      featureButton.textContent = hasProfile ? 'Editar meu perfil →' : 'Criar meu perfil →';
     }
   }
 
