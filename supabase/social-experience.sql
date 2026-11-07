@@ -113,22 +113,30 @@ begin
 end;
 $realtime$;
 
--- Privacidade de stories: perfis privados só aparecem para amigos aceitos.
+create or replace function public.can_view_story(p_user_id uuid,p_audience text)
+returns boolean language plpgsql security definer set search_path=public
+as $can_view_story$
+declare v_private boolean;
+begin
+ if auth.uid() is null or p_user_id is null then return false; end if;
+ if auth.uid()=p_user_id then return true; end if;
+ if public.is_blocked_between(auth.uid(),p_user_id) then return false; end if;
+ select coalesce(private_profile,false) into v_private from public.profiles where user_id=p_user_id;
+ if coalesce(v_private,false) or p_audience='friends' then
+  return exists(select 1 from public.friend_requests f where f.status='accepted' and
+   ((f.user_one=auth.uid() and f.user_two=p_user_id) or (f.user_two=auth.uid() and f.user_one=p_user_id)));
+ end if;
+ return p_audience='public';
+end;
+$can_view_story$;
+revoke all on function public.can_view_story(uuid,text) from public,anon;
+grant execute on function public.can_view_story(uuid,text) to authenticated;
 drop policy if exists stories_read_visible on public.stories;
-create policy stories_read_visible on public.stories for select to authenticated using (
- expires_at>now() and (user_id=auth.uid() or
-  (audience='public' and not coalesce((select p.private_profile from public.profiles p where p.user_id=stories.user_id),false)) or
-  exists(select 1 from public.friend_requests f where f.status='accepted' and
-   ((f.user_one=auth.uid() and f.user_two=stories.user_id) or (f.user_two=auth.uid() and f.user_one=stories.user_id))))
- and not public.is_blocked_between(auth.uid(),user_id)
-);
+create policy stories_read_visible on public.stories for select to authenticated using(expires_at>now() and public.can_view_story(user_id,audience));
 drop policy if exists story_media_read_visible on storage.objects;
 create policy story_media_read_visible on storage.objects for select to authenticated using(bucket_id='story-media' and exists(
- select 1 from public.stories s where s.media_path=name and s.expires_at>now() and
- (s.user_id=auth.uid() or (s.audience='public' and not coalesce((select p.private_profile from public.profiles p where p.user_id=s.user_id),false)) or
-  exists(select 1 from public.friend_requests f where f.status='accepted' and
-   ((f.user_one=auth.uid() and f.user_two=s.user_id) or (f.user_two=auth.uid() and f.user_one=s.user_id))))
- and not public.is_blocked_between(auth.uid(),s.user_id)));
+ select 1 from public.stories s where s.media_path=name and s.expires_at>now() and public.can_view_story(s.user_id,s.audience)
+));
 create or replace function public.get_story_feed()
 returns table(story_id uuid,user_id uuid,display_name text,caption text,media_path text,audience text,created_at timestamptz,expires_at timestamptz,view_count bigint,viewed_by_me boolean)
 language sql security definer set search_path=public as $story_feed$
@@ -136,9 +144,6 @@ language sql security definer set search_path=public as $story_feed$
   (select count(*) from public.story_views v where v.story_id=s.id),
   exists(select 1 from public.story_views v where v.story_id=s.id and v.viewer_id=auth.uid())
  from public.stories s join public.profiles p on p.user_id=s.user_id
- where auth.uid() is not null and s.expires_at>now() and
- (s.user_id=auth.uid() or (s.audience='public' and not coalesce(p.private_profile,false)) or
-  exists(select 1 from public.friend_requests f where f.status='accepted' and
-   ((f.user_one=auth.uid() and f.user_two=s.user_id) or (f.user_two=auth.uid() and f.user_one=s.user_id))))
- and not public.is_blocked_between(auth.uid(),s.user_id) order by s.created_at desc;
+ where s.expires_at>now() and public.can_view_story(s.user_id,s.audience)
+ order by s.created_at desc;
 $story_feed$;
