@@ -277,7 +277,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     fill.color.set(settings.room.time==='night'?'#657fcb':'#a6c9ff');
     ceilingGlow.color.set(p.key);lampGlow.color.set('#ffd5a0');
     dust.material.color.set(settings.accent);
-    shell.dataset.theme=settings.theme;
+    stage.closest('.profile-custom-shell').dataset.theme=settings.theme;
     aspectCamera();
   };
   const dispose=()=>{
@@ -313,14 +313,14 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     group.position.x=item.x;group.position.z=item.z;selectionRing.position.set(item.x,.045,item.z);
   }
   function onPointerDown(event){
-    if(state.stopped)return;canvasPoint(event);
+    if(state.stopped||event.target!==renderer.domElement)return;canvasPoint(event);
     const intersects=raycaster.intersectObjects(furnitureRoot.children,true);
     const hit=intersects.find(x=>x.object.userData.itemId);
     if(state.editing){
       if(hit){
         setSelected(hit.object.userData.itemId);
         state.dragging=true;state.pointerId=event.pointerId;
-        stage.setPointerCapture?.(event.pointerId);
+        renderer.domElement.setPointerCapture?.(event.pointerId);
         raycaster.ray.intersectPlane(groundPlane,hitPoint);
         event.preventDefault();
       }else if(state.pendingType){
@@ -338,7 +338,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     }
   }
   function onPointerMove(event){
-    if(state.stopped)return;
+    if(state.stopped||event.target!==renderer.domElement)return;
     if(state.dragging&&event.pointerId===state.pointerId){
       canvasPoint(event);
       if(raycaster.ray.intersectPlane(groundPlane,hitPoint))moveSelected(hitPoint.x,hitPoint.z);
@@ -492,7 +492,7 @@ function createWorldMarkup(profile,settings,photos,editable){
   const info=element('div','world-info-content');info.id='profileWorldInfoContent';panel.append(close,info);stage.append(panel);
   close.addEventListener('click',()=>panel.hidden=true);
   if(editable){
-    const edit=element('button','world-edit-trigger','✦ Decorar meu espaço');edit.type='button';edit.addEventListener('click',()=>setEditMode(true));stage.append(edit);
+    const edit=element('button','world-edit-trigger','✦ Decorar meu espaço');edit.type='button';edit.addEventListener('click',()=>{const panel=$ps('profileWorldEditor');setEditMode(!panel||panel.hidden);});stage.append(edit);
   }else stage.append(element('span','world-visitor-note','Este é um espaço pessoal'));
   const hint=element('span','world-stage-hint',editable?'Toque nos objetos para explorar · Decore para reorganizar':'Toque nos objetos para conhecer esta pessoa');stage.append(hint);
   const editor=editable?editorMarkup():null;
@@ -599,17 +599,4 @@ function openEditor(){
 $ps('openProfileStudio')?.addEventListener('click',openEditor);
 document.addEventListener('brazilly:screen-changed',event=>{if(event.detail==='profileScreen')renderOwn();});
 document.addEventListener('brazilly:profile-opened',event=>renderPublic(event.detail));
-document.addEventListener('click',event=>{
-  if(event.target.closest('#worldCancelEdit'))return;
-  if(event.target.closest('.world-edit-trigger')){
-    const root=document.querySelector('#profileCustomizationPreview .profile-custom-shell');
-    if(root?._profileWorldController){
-      const panel=$ps('profileWorldEditor'),active=panel&&!panel.hidden;
-      root._profileWorldController.setEditing(!active);
-      if(panel)panel.hidden=active;
-      const button=root.querySelector('.world-edit-trigger');
-      if(button)button.textContent=active?'✦ Decorar meu espaço':'✦ Fechar decoração';
-    }
-  }
-});
 })();
