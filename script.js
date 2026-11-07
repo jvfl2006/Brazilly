@@ -12,10 +12,21 @@ const db = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY,
 });
 let currentUser = null;
 let currentProfile = null;
+let isModerator = false;
 let authReady = false;
 
+async function refreshModerationAccess(){
+  isModerator=false;
+  if(currentUser){
+    const {data,error}=await db.rpc('is_brazilly_moderator');
+    if(error)console.warn('Não foi possível verificar acesso à moderação:',error.message);
+    else isModerator=Boolean(data);
+  }
+  updateHeaderAccountButtons();
+}
 function updateHeaderAccountButtons(){
   $('signupButton').hidden=Boolean(currentProfile);
+  $('moderationSettingsGroup').hidden=!isModerator;
   $('loginButton').textContent=currentUser?(currentProfile?'Minha conta':'Completar perfil'):'Entrar';
 }
 function showScreen(id) {
@@ -26,6 +37,7 @@ function showScreen(id) {
   if (id === 'discoverScreen') renderProfiles();
   if (id === 'messagesScreen') renderConversationList();
   if (id === 'profileScreen') renderProfilePreview();
+  if (id === 'moderationScreen') renderModerationReports();
 }
 document.querySelectorAll('[data-screen]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); showScreen(el.dataset.screen); }));
 document.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', () => showScreen(el.dataset.open)));
@@ -217,15 +229,16 @@ async function initAuth(){
   if(!db){alert('A biblioteca do Supabase não carregou. Atualize a página e tente novamente.');return;}
   const {data:{session}}=await db.auth.getSession();currentUser=session?.user||null;
   if(currentUser){try{await fetchProfileFromServer();const pending=sessionStorage.getItem('brazilly.pendingProfile');if(pending){const draft=JSON.parse(pending);await syncProfileToSupabase(draft);sessionStorage.removeItem('brazilly.pendingProfile');} }catch(error){console.error('Falha ao carregar perfil:',error);}}
+  await refreshModerationAccess();
   updateHeaderAccountButtons();
   authReady=true;
   db.auth.onAuthStateChange((event,sessionNow)=>{
     currentUser=sessionNow?.user||null;
-    if(!currentUser){currentProfile=null;updateHeaderAccountButtons();renderProfiles();return;}
+    if(!currentUser){currentProfile=null;isModerator=false;updateHeaderAccountButtons();renderProfiles();return;}
     if(event==='PASSWORD_RECOVERY'){
       setTimeout(async()=>{const next=prompt('Digite sua nova senha (mínimo de 8 caracteres):');if(next&&next.length>=8){const {error}=await db.auth.updateUser({password:next});alert(error?error.message:'Senha atualizada com sucesso.');}else if(next!==null){alert('A senha precisa ter pelo menos 8 caracteres.');}},0);
     }
-    setTimeout(async()=>{try{await fetchProfileFromServer();updateHeaderAccountButtons();renderProfiles();}catch(error){console.error(error);}},0);
+    setTimeout(async()=>{try{await fetchProfileFromServer();await refreshModerationAccess();updateHeaderAccountButtons();renderProfiles();}catch(error){console.error(error);}},0);
   });
   if(currentUser&&currentProfile){$('loginButton').textContent='Minha conta';}renderProfiles();
 }
@@ -235,7 +248,32 @@ async function renderProfilePreview(){const p=currentProfile,root=$('profilePrev
 async function editProfile(){let p=currentProfile;if(!p&&currentUser)p=await fetchProfileFromServer();if(!p){alert('Entre na sua conta para editar o perfil.');return;}editingProfile=true;$('profileName').value=p.name||'';$('profileEmail').value=p.email||'';$('profileEmail').readOnly=true;$('profilePassword').value='';$('birthDate').value=p.birthDate||'';['gender','sexuality','height','education','personality','pets','children','bio','drinkFrequency','smokeFrequency','exerciseFrequency','city'].forEach((id,i)=>{const keys=['gender','sexuality','height','education','personality','pets','children','bio','drink','smoke','exercise','city'];$(id).value=p[keys[i]]||'';});$('profession').value=p.profession||'';$('religion').value=p.religion||'';$('relationshipStatus').value=p.relationshipStatus||'';$('zodiac').value=p.zodiac||'';$('showAge').checked=p.showAge!==false;$('showCity').checked=p.showCity===true;selectedInterests=new Set(p.interests||[]);photos=p.photos||[];renderPhotos();renderInterestCategories();renderSelectedInterests();$('intentOptions').querySelectorAll('input').forEach(x=>x.checked=(p.intentions||[]).includes(x.value));setWizardStep(0);showScreen('authScreen');}
 $('editProfileButton').addEventListener('click',editProfile);$('profileEditButton').addEventListener('click',editProfile);
 $('exportDataButton').addEventListener('click',()=>{const p=currentProfile;if(!p){alert('Entre na sua conta primeiro.');return;}const blob=new Blob([JSON.stringify({...p,photos:[]},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='meu-perfil-brazilly.json';a.click();URL.revokeObjectURL(url);});
-$('logoutButton').addEventListener('click',async()=>{if(!confirm('Deseja sair da sua conta Brazilly neste dispositivo?'))return;const {error}=await db.auth.signOut();if(error){alert(error.message);return;}currentUser=null;currentProfile=null;updateHeaderAccountButtons();showScreen('homeScreen');alert('Você saiu da sua conta.');});
+$('openModerationButton').addEventListener('click',()=>showScreen('moderationScreen'));
+$('refreshModerationButton').addEventListener('click',renderModerationReports);
+async function renderModerationReports(){
+  const root=$('moderationReportList');root.innerHTML='';
+  if(!currentUser||!isModerator){root.textContent='Acesso restrito à moderação.';return;}
+  const {data,error}=await db.rpc('list_moderation_reports');
+  if(error){root.textContent='Não foi possível carregar denúncias: '+error.message;return;}
+  if(!data?.length){root.textContent='Nenhuma denúncia registrada.';return;}
+  for(const report of data){
+    const card=document.createElement('article');card.className='moderation-report-card';
+    const heading=document.createElement('div');heading.className='moderation-report-heading';
+    const title=document.createElement('strong');title.textContent=report.reason;
+    const date=document.createElement('time');date.textContent=new Date(report.created_at).toLocaleString('pt-BR');
+    heading.append(title,date);
+    const users=document.createElement('p');users.textContent='Denunciante: '+report.reporter_name+' · Perfil: '+report.reported_name;
+    const details=document.createElement('p');details.textContent=report.details||'Sem detalhes adicionais.';
+    const controls=document.createElement('div');controls.className='moderation-report-controls';
+    const status=document.createElement('select');
+    [['pending','Pendente'],['reviewing','Em análise'],['resolved','Resolvida'],['dismissed','Descartada']].forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;status.append(option);});
+    status.value=report.status;
+    const save=document.createElement('button');save.type='button';save.className='button button-small button-primary';save.textContent='Atualizar status';
+    save.addEventListener('click',async()=>{save.disabled=true;const {error}=await db.rpc('update_moderation_report',{p_report_id:report.report_id,p_status:status.value});if(error)alert(error.message);else await renderModerationReports();save.disabled=false;});
+    controls.append(status,save);card.append(heading,users,details,controls);root.append(card);
+  }
+}
+$('logoutButton').addEventListener('click',async()=>{if(!confirm('Deseja sair da sua conta Brazilly neste dispositivo?'))return;const {error}=await db.auth.signOut();if(error){alert(error.message);return;}currentUser=null;currentProfile=null;isModerator=false;updateHeaderAccountButtons();showScreen('homeScreen');alert('Você saiu da sua conta.');});
 // Preferências locais. Recursos que exigem servidor são descritos sem simular execução.
 const defaultSettings={theme:'dark',wallpaper:'default',lastSeen:true,online:true,readReceipt:true,mediaDownload:'never'};
 function readSettings(){try{return {...defaultSettings,...JSON.parse(localStorage.getItem(STORAGE.settings)||'{}')};}catch{return {...defaultSettings};}}
