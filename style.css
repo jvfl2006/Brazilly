@@ -451,7 +451,7 @@ body.story-view-open{overflow:hidden}
 .story-interactions{flex:0 0 auto;padding:8px 14px 14px;border-top:1px solid #ffffff18;background:#171923}
 .story-interactions-label{display:block;margin-bottom:8px;color:#aeb4c5;font-size:10px;font-weight:750;letter-spacing:.4px}
 .story-reaction-buttons{display:flex;align-items:center;gap:8px}
-.story-reaction-buttons button{width:42px;height:38px;border:1px solid #ffffff1c;border-radius:12px;background:#ffffff0b;color:#fff;font-size:20px;cursor:pointer;transition:transform .15s,border-color .15s,background .15s}
+.story-reaction-buttons button{min-width:42px;width:auto;padding:0 8px;height:38px;border:1px solid #ffffff1c;border-radius:12px;background:#ffffff0b;color:#fff;font-size:20px;cursor:pointer;transition:transform .15s,border-color .15s,background .15s}
 .story-reaction-buttons button:hover:not(:disabled){transform:translateY(-2px);background:#ffffff18}
 .story-reaction-buttons button.is-selected{border-color:#a991ff;background:#8068ed45;box-shadow:0 0 0 2px #8068ed22}
 .story-reaction-buttons button:disabled{cursor:default;opacity:.55}
