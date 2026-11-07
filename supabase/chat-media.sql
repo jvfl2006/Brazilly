@@ -53,4 +53,3 @@ for delete to authenticated using (
  )
 );
 
-grant select,insert on storage.objects to authenticated;
