@@ -88,7 +88,7 @@ language sql
 stable
 security definer
 set search_path = public
-as $
+as $list_conversations$
   select c.id,
     case when c.user_one=auth.uid() then c.user_two else c.user_one end,
     p.display_name,
@@ -99,7 +99,7 @@ as $
   where auth.uid() in (c.user_one,c.user_two)
     and not public.is_blocked_between(c.user_one,c.user_two)
   order by c.updated_at desc;
-$;
+$list_conversations$;
 revoke all on function public.list_my_conversations() from public;
 grant execute on function public.list_my_conversations() to authenticated;
 
