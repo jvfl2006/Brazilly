@@ -58,3 +58,8 @@
 .community-room-header small{font-size:10px;color:var(--muted)}
 .community-messages{flex:1;min-height:350px;max-height:55vh;overflow:auto;padding:18px 4px;display:flex;flex-direction:column;gap:9px}
 @media(max-width:620px){.communities-container{padding:16px}.community-list{grid-template-columns:1fr}.community-directory-actions{align-items:stretch;flex-direction:column}.community-directory-actions .button{width:100%}.random-chat-actions{flex-direction:column}.community-room{min-height:520px}}
+
+
+/* Confirmação opcional de acesso ao e-mail */
+#emailVerificationModal .modal-card p{line-height:1.7}
+#emailVerificationModal .full-button{margin-top:9px}
