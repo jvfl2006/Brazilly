@@ -206,3 +206,16 @@ begin
 end; $$;
 revoke all on function public.get_social_recommendations(integer) from public,anon;
 grant execute on function public.get_social_recommendations(integer) to authenticated;
+
+-- Privacy hardening: direct table reads/writes respect profile visibility.
+drop policy if exists profile_wall_posts_read on public.profile_wall_posts;
+create policy profile_wall_posts_read on public.profile_wall_posts for select to authenticated
+using(public.can_view_profile(profile_id) and not public.is_blocked_between((select auth.uid()),profile_id) and not public.is_blocked_between((select auth.uid()),author_id));
+drop policy if exists profile_wall_posts_insert on public.profile_wall_posts;
+create policy profile_wall_posts_insert on public.profile_wall_posts for insert to authenticated
+with check(author_id=(select auth.uid()) and profile_id<>(select auth.uid()) and public.can_view_profile(profile_id) and not public.is_blocked_between((select auth.uid()),profile_id));
+drop policy if exists profile_visits_insert_self on public.profile_visits;
+create policy profile_visits_insert_self on public.profile_visits for insert to authenticated
+with check(visitor_id=(select auth.uid()) and profile_id<>(select auth.uid()) and public.can_view_profile(profile_id));
+drop trigger if exists private_diary_touch_updated_at on public.private_diary_entries;
+create trigger private_diary_touch_updated_at before update on public.private_diary_entries for each row execute function public.set_updated_at();
