@@ -89,16 +89,19 @@ grant execute on function public.block_user(uuid) to authenticated;
 -- Perfil privado: só o próprio usuário e amizades aceitas podem ver os dados completos.
 create or replace function public.can_view_profile(p_user_id uuid)
 returns boolean language sql stable security definer set search_path=public as $visibility$
-  select auth.uid()=p_user_id
-    or exists (
-      select 1 from public.profiles p
-      where p.user_id=p_user_id and not p.is_private
-    )
-    or exists (
-      select 1 from public.friend_requests f
-      where f.status='accepted'
-        and ((f.requester_id=auth.uid() and f.recipient_id=p_user_id)
-          or (f.requester_id=p_user_id and f.recipient_id=auth.uid()))
+  select not public.is_blocked_between(auth.uid(),p_user_id)
+    and (
+      auth.uid()=p_user_id
+      or exists (
+        select 1 from public.profiles p
+        where p.user_id=p_user_id and not p.is_private
+      )
+      or exists (
+        select 1 from public.friend_requests f
+        where f.status='accepted'
+          and ((f.requester_id=auth.uid() and f.recipient_id=p_user_id)
+            or (f.requester_id=p_user_id and f.recipient_id=auth.uid()))
+      )
     );
 $visibility$;
 revoke all on function public.can_view_profile(uuid) from public;
@@ -245,9 +248,3 @@ for select to authenticated using (
   )
 );
 
--- Evita solicitações duplicadas em sentidos opostos para o mesmo par de usuários.
-create unique index if not exists friend_requests_one_per_pair_idx
-  on public.friend_requests (
-    least(requester_id, recipient_id),
-    greatest(requester_id, recipient_id)
-  );
