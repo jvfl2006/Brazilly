@@ -1,5 +1,5 @@
 (()=>{'use strict';
-if(!window.db||!document.getElementById('gamesScreen'))return;
+if(!db||!document.getElementById('gamesScreen'))return;
 const root=document.getElementById('gamesScreen'),grid=root.querySelector('#gamesDirectory .games-catalog-grid');
 if(!grid||grid.dataset.socialGames==='1')return;grid.dataset.socialGames='1';
 const defs=[
