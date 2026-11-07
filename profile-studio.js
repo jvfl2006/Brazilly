@@ -274,7 +274,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     materials.wall.color.set(p.wall);materials.side.color.set(p.side);materials.floor.color.set(p.floor);
     materials.trim.color.set(p.trim);materials.wood.color.set(p.wood);materials.fabric.color.set(p.fabric);
     materials.plant.color.set(p.plant);materials.accent.color.set(settings.accent);materials.glass.color.set(p.sky);
-    skyMat.color.set(p.sky);outsideMat.color.set(p.sky);scene.background=new T.Color(p.sky);
+    skyMat.color.set(p.sky);outsideMat.color.set(p.sky);sun.material.color.set(p.key);scene.background=new T.Color(p.sky);
     ambient.color.set(p.ambient);ambient.groundColor.set(p.trim);keyLight.color.set(p.key);keyLight.intensity=p.intensity;
     fill.color.set(settings.room.time==='night'?'#657fcb':'#a6c9ff');
     ceilingGlow.color.set(p.key);lampGlow.color.set('#ffd5a0');
@@ -593,7 +593,7 @@ async function renderPublic(profile){
     const previous=target.querySelector('.profile-public-customization');
     if(previous){cleanupByRoot.get(previous)?.();previous.remove();}
     const wrap=element('section','profile-public-customization');
-    target.prepend(wrap);
+    wrap.textContent='Preparando o ambiente pessoal...';target.prepend(wrap);
     await render(wrap,profile,settings,false);
     if(activePublicId!==profile.user_id){cleanupByRoot.get(wrap)?.();wrap.remove();}
   }catch(error){console.warn('Erro ao carregar o ambiente público:',error);}
