@@ -15,3 +15,7 @@
 .custom-interest-controls{display:flex;gap:8px}
 .custom-interest-controls input{flex:1;min-width:0}
 @media(max-width:480px){.custom-interest-controls{flex-direction:column}.custom-interest-controls .button{width:100%}}
+
+
+/* Ações sociais do perfil */
+.profile-social-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 8px}.profile-social-actions .full-button{margin:0}.profile-social-actions #reportProfileButton{grid-column:1/-1}
