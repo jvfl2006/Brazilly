@@ -503,9 +503,9 @@ function setEditMode(active){
   const root=document.querySelector('#profileCustomizationPreview .profile-custom-shell');
   if(!root)return;
   const controller=root._profileWorldController;
-  if(!controller)return;
-  controller.setEditing(active);
   const panel=$ps('profileWorldEditor'),button=root.querySelector('.world-edit-trigger');
+  if(!controller){if(panel)panel.hidden=!active;if(button)button.textContent=active?'✦ Fechar decoração':'✦ Decorar meu espaço';return;}
+  controller.setEditing(active);
   if(panel)panel.hidden=!active;
   if(button)button.textContent=active?'✦ Fechar decoração':'✦ Decorar meu espaço';
   const hint=root.querySelector('.world-stage-hint');
@@ -531,6 +531,7 @@ async function render(root,profile,rawSettings,editable=false){
     renderer.domElement.className='profile-world-canvas';
     const controller=makeScene(T,renderer,markup.stage,settings,profile,photos);
     markup.shell._profileWorldController=controller;
+    if(editable&&markup.editor&&!markup.editor.hidden)controller.setEditing(true);
     const dispose=()=>{controller.dispose();};
     cleanupByRoot.set(root,dispose);
     if(editable){
