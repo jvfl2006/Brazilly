@@ -28,15 +28,36 @@
   async function leaveRandomChat(){stopRandomWatch();try{const {error}=await db.rpc('leave_random_chat',{p_session_id:randomSessionId});if(error)throw error;}catch(error){console.warn(error);}randomSessionId=null;randomPartnerId=null;el('leaveRandomButton').hidden=true;el('findRandomButton').disabled=false;el('findRandomButton').textContent='Encontrar alguém';el('randomMessageInput').disabled=true;el('randomMessageForm').querySelector('button').disabled=true;el('randomMessages').innerHTML='';setText('randomStatus','Você saiu da conversa. Encontre outra pessoa quando quiser.');}
   el('findRandomButton').addEventListener('click',()=>{if(randomSessionId)leaveRandomChat().then(findRandomPartner);else findRandomPartner();});el('leaveRandomButton').addEventListener('click',leaveRandomChat);
   el('randomMessageForm').addEventListener('submit',async event=>{event.preventDefault();if(!randomSessionId||!currentUser)return;const input=el('randomMessageInput'),body=input.value.trim();if(!body)return;input.value='';const {data,error}=await db.from('random_chat_messages').insert({session_id:randomSessionId,sender_id:currentUser.id,body}).select('id,sender_id,body,created_at').single();if(error){input.value=body;setText('randomStatus','Erro ao enviar: '+error.message);return;}appendChatMessage(el('randomMessages'),data,true);});
-  async function renderCommunities(){
-    if(!requireLogin())return;const root=el('communityList');root.innerHTML='<p class="field-note">Carregando comunidades...</p>';
-    const {data:groups,error}=await db.from('communities').select('id,name,description,category,created_at,created_by').order('created_at',{ascending:false}).limit(100);
-    if(error){root.textContent='Não foi possível carregar comunidades: '+error.message;return;}
-    const {data:members}=await db.from('community_members').select('community_id,user_id');const mine=new Set((members||[]).filter(x=>x.user_id===currentUser.id).map(x=>x.community_id));
-    root.innerHTML='';if(!groups?.length){root.innerHTML='<p class="field-note">Ainda não existem comunidades. Crie a primeira.</p>';return;}
-    for(const group of groups){const card=document.createElement('article');card.className='community-card';const title=document.createElement('h3');title.textContent=group.name;const category=document.createElement('small');category.textContent=(group.category||'Geral')+' · '+(members||[]).filter(x=>x.community_id===group.id).length+' participantes';const desc=document.createElement('p');desc.textContent=group.description||'Uma comunidade para conversar.';const action=document.createElement('button');action.type='button';action.className='button button-small '+(mine.has(group.id)?'button-primary':'button-outline');action.textContent=mine.has(group.id)?'Abrir comunidade':'Participar';action.addEventListener('click',()=>mine.has(group.id)?openCommunity(group):joinCommunity(group));card.append(title,category,desc,action);root.append(card);}
+  let communitiesCache=null,communitiesCacheAt=0,communitiesLoadVersion=0;
+  async function renderCommunities(forceRefresh=false){
+    if(!requireLogin())return;
+    const root=el('communityList'),version=++communitiesLoadVersion;
+    root.innerHTML='<p class="field-note">Carregando comunidades...</p>';
+    let groups=communitiesCache;
+    if(forceRefresh||!groups||Date.now()-communitiesCacheAt>20000){
+      const {data,error}=await db.rpc('get_communities_fast');
+      if(version!==communitiesLoadVersion)return;
+      if(error){root.textContent='Não foi possível carregar comunidades: '+error.message;return;}
+      groups=data||[];communitiesCache=groups;communitiesCacheAt=Date.now();
+    }
+    if(version!==communitiesLoadVersion)return;
+    root.innerHTML='';
+    if(!groups.length){root.innerHTML='<p class="field-note">Ainda não existem comunidades. Crie a primeira.</p>';return;}
+    const fragment=document.createDocumentFragment();
+    for(const group of groups){
+      const card=document.createElement('article');card.className='community-card';
+      const title=document.createElement('h3');title.textContent=group.name;
+      const category=document.createElement('small');category.textContent=(group.category||'Geral')+' · '+Number(group.member_count||0)+' participantes';
+      const desc=document.createElement('p');desc.textContent=group.description||'Uma comunidade para conversar.';
+      const action=document.createElement('button');action.type='button';
+      action.className='button button-small '+(group.is_member?'button-primary':'button-outline');
+      action.textContent=group.is_member?'Abrir comunidade':'Participar';
+      action.addEventListener('click',()=>group.is_member?openCommunity(group):joinCommunity(group));
+      card.append(title,category,desc,action);fragment.append(card);
+    }
+    root.replaceChildren(fragment);
   }
-  async function joinCommunity(group){const {error}=await db.from('community_members').insert({community_id:group.id,user_id:currentUser.id,role:'member'});if(error&&error.code!=='23505'){setText('communityStatus','Não foi possível participar: '+error.message);return;}await openCommunity(group);await renderCommunities();}
+  async function joinCommunity(group){const {error}=await db.from('community_members').insert({community_id:group.id,user_id:currentUser.id,role:'member'});if(error&&error.code!=='23505'){setText('communityStatus','Não foi possível participar: '+error.message);return;}if(!group.is_member)group.member_count=Number(group.member_count||0)+1;group.is_member=true;communitiesCache=null;await openCommunity(group);await renderCommunities(true);}
   function renderCommunityMessages(rows){
     const root=el('communityMessages');root.innerHTML='';let previous=null;
     for(const row of rows||[]){
@@ -58,17 +79,17 @@
   }
   async function openCommunity(group){
     communityId=group.id;if(communityChannel)db.removeChannel(communityChannel);if(communityReadChannel)db.removeChannel(communityReadChannel);
-    el('communityDirectory').hidden=true;el('communityRoom').hidden=false;setText('communityRoomTitle',group.name);const {data:memberRows}=await db.from('community_members').select('user_id').eq('community_id',group.id);setText('communityRoomDescription',(memberRows||[]).length+' participantes · '+(group.description||group.category||'Comunidade Brazilly'));
+    el('communityDirectory').hidden=true;el('communityRoom').hidden=false;setText('communityRoomTitle',group.name);setText('communityRoomDescription',Number(group.member_count||0)+' participantes · '+(group.description||group.category||'Comunidade Brazilly'));
     await refreshCommunityMessages(true);
     communityChannel=db.channel('community-'+communityId).on('postgres_changes',{event:'INSERT',schema:'public',table:'community_messages',filter:'community_id=eq.'+communityId},()=>refreshCommunityMessages(true)).subscribe();
     communityReadChannel=db.channel('community-reads-'+communityId).on('postgres_changes',{event:'INSERT',schema:'public',table:'community_message_reads',filter:'community_id=eq.'+communityId},()=>refreshCommunityMessages(false)).subscribe();
     setText('communityStatus','Você está participando desta comunidade.');
   }
   el('openCreateCommunity').addEventListener('click',()=>{if(requireLogin())el('createCommunityForm').hidden=!el('createCommunityForm').hidden;});
-  el('createCommunityForm').addEventListener('submit',async event=>{event.preventDefault();if(!requireLogin())return;const button=el('createCommunitySubmit');button.disabled=true;try{const {data,error}=await db.rpc('create_community',{p_name:el('newCommunityName').value.trim(),p_description:el('newCommunityDescription').value.trim(),p_category:el('newCommunityCategory').value});if(error)throw error;const {data:group,error:loadError}=await db.from('communities').select('id,name,description,category,created_at,created_by').eq('id',data).single();if(loadError)throw loadError;el('createCommunityForm').reset();el('createCommunityForm').hidden=true;await renderCommunities();await openCommunity(group);}catch(error){setText('communityStatus','Não foi possível criar: '+error.message);}finally{button.disabled=false;}});
+  el('createCommunityForm').addEventListener('submit',async event=>{event.preventDefault();if(!requireLogin())return;const button=el('createCommunitySubmit');button.disabled=true;try{const {data,error}=await db.rpc('create_community',{p_name:el('newCommunityName').value.trim(),p_description:el('newCommunityDescription').value.trim(),p_category:el('newCommunityCategory').value});if(error)throw error;const {data:group,error:loadError}=await db.from('communities').select('id,name,description,category,created_at,created_by').eq('id',data).single();if(loadError)throw loadError;group.member_count=1;group.is_member=true;el('createCommunityForm').reset();el('createCommunityForm').hidden=true;communitiesCache=null;await renderCommunities(true);await openCommunity(group);}catch(error){setText('communityStatus','Não foi possível criar: '+error.message);}finally{button.disabled=false;}});
   el('backToCommunities').addEventListener('click',async()=>{if(communityChannel)db.removeChannel(communityChannel);if(communityReadChannel)db.removeChannel(communityReadChannel);communityChannel=null;communityReadChannel=null;communityId=null;el('communityRoom').hidden=true;el('communityDirectory').hidden=false;await renderCommunities();});
   el('communityMessageForm').addEventListener('submit',async event=>{event.preventDefault();if(!communityId||!currentUser)return;const input=el('communityMessageInput'),body=input.value.trim();if(!body)return;input.value='';const {error}=await db.from('community_messages').insert({community_id:communityId,sender_id:currentUser.id,body});if(error){input.value=body;setText('communityStatus','Erro ao enviar: '+error.message);return;}await refreshCommunityMessages(false);});
-  el('refreshCommunities').addEventListener('click',renderCommunities);
+  el('refreshCommunities').addEventListener('click',()=>renderCommunities(true));
   document.querySelectorAll('[data-open="randomChatScreen"],[data-open="communitiesScreen"]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.open==='randomChatScreen'&&!currentUser){openModal('loginModal');return;}if(button.dataset.open==='communitiesScreen'){if(!currentUser){openModal('loginModal');return;}renderCommunities();}}));
   db.auth.onAuthStateChange((_event,session)=>{if(!session){leaveRandomChat();if(communityChannel)db.removeChannel(communityChannel);if(communityReadChannel)db.removeChannel(communityReadChannel);}});
   window.addEventListener('beforeunload',()=>{if(randomPoll)clearInterval(randomPoll);});
