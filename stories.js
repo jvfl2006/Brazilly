@@ -2,32 +2,35 @@
   'use strict';
   const $=id=>document.getElementById(id);
   if(typeof db==='undefined'||!db||!$('storiesStrip'))return;
-  let stories=[],viewerIndex=0,viewerTimer=null;
-  const escapeText=value=>String(value||'');
+  let stories=[],viewerIndex=0,viewerTimer=null,loadVersion=0;
   async function loadStories(){
+    const version=++loadVersion;
     const strip=$('storiesStrip');strip.innerHTML='';
-    if(typeof currentUser==='undefined'||!currentUser){strip.innerHTML='';return;}
+    if(typeof currentUser==='undefined'||!currentUser)return;
     const {data,error}=await db.rpc('get_story_feed');
+    if(version!==loadVersion)return;
     if(error){strip.textContent='Não foi possível carregar stories.';console.warn(error);return;}
-    stories=data||[];
-    const own=stories.filter(s=>s.user_id===currentUser.id);
+    const uniqueStories=new Map();
+    for(const story of data||[])if(!uniqueStories.has(story.story_id))uniqueStories.set(story.story_id,story);
+    stories=[...uniqueStories.values()];
     const userIds=[...new Set([...stories.map(s=>s.user_id),currentUser.id])];
     const avatarUrls=new Map();
-    if(userIds.length){
-      const {data:photos,error:photoError}=await db.from('profile_photos').select('user_id,storage_path').in('user_id',userIds).eq('is_primary',true);
-      if(!photoError){
-        for(const photo of photos||[]){
-          const {data}=await db.storage.from('profile-photos').createSignedUrl(photo.storage_path,3600);
-          if(data?.signedUrl)avatarUrls.set(photo.user_id,data.signedUrl);
-        }
+    const {data:photos,error:photoError}=await db.rpc('get_story_avatars',{p_user_ids:userIds});
+    if(version!==loadVersion)return;
+    if(!photoError){
+      for(const photo of photos||[]){
+        const {data}=db.storage.from('profile-photos').getPublicUrl(photo.storage_path);
+        if(data?.publicUrl)avatarUrls.set(photo.user_id,data.publicUrl);
       }
-    }
+    }else console.warn('Não foi possível carregar os avatares dos stories:',photoError);
+    if(version!==loadVersion)return;
+    const own=stories.filter(s=>s.user_id===currentUser.id);
     const add=document.createElement('button');add.type='button';add.className='story-tile story-create';
-    const ownAvatar=document.createElement('span');ownAvatar.className='story-avatar';ownAvatar.textContent=(currentProfile?.name||currentUser.email||'Você').trim().slice(0,1).toUpperCase();
+    const ownAvatar=document.createElement('span');ownAvatar.className='story-avatar';ownAvatar.textContent=(currentProfile?.name||currentProfile?.display_name||currentUser.email||'Você').trim().slice(0,1).toUpperCase();
     if(avatarUrls.has(currentUser.id)){ownAvatar.style.backgroundImage='url("'+avatarUrls.get(currentUser.id)+'")';ownAvatar.classList.add('has-photo');ownAvatar.textContent='';}
     const plus=document.createElement('span');plus.className='story-add-badge';plus.textContent='+';
     ownAvatar.append(plus);add.append(ownAvatar);
-    const ownName=document.createElement('strong');ownName.textContent='Seu story';const ownHint=document.createElement('small');ownHint.textContent='Compartilhar';add.append(ownName,ownHint);
+    const ownName=document.createElement('strong');ownName.textContent='Seu story';add.append(ownName);
     add.addEventListener('click',()=> $('storyComposer').hidden=!$('storyComposer').hidden);strip.append(add);
     const grouped=new Map();
     stories.forEach(story=>{if(!grouped.has(story.user_id))grouped.set(story.user_id,[]);grouped.get(story.user_id).push(story);});
@@ -37,10 +40,10 @@
       const hasUnseen=items.some(x=>!x.viewed_by_me);
       const avatar=document.createElement('span');avatar.className='story-avatar '+(hasUnseen?'unread':'seen');avatar.textContent=(item.display_name||'B').trim().slice(0,1).toUpperCase();
       if(avatarUrls.has(userId)){avatar.style.backgroundImage='url("'+avatarUrls.get(userId)+'")';avatar.classList.add('has-photo');avatar.textContent='';}
-      const name=document.createElement('strong');name.textContent=item.display_name||'Pessoa';const count=document.createElement('small');count.textContent=items.length>1?items.length+' stories':'Story';
-      tile.append(avatar,name,count);tile.addEventListener('click',()=>openViewer(items[0]));strip.append(tile);
+      const name=document.createElement('strong');name.textContent=item.display_name||'Pessoa';
+      tile.append(avatar,name);tile.addEventListener('click',()=>openViewer(items[0]));strip.append(tile);
     }
-    if(own.length){const ownTile=add.querySelector('small');ownTile.textContent=own.length+' publicado(s)';}
+    if(own.length){const ownTile=add.querySelector('strong');ownTile.textContent='Seu story';}
   }
   async function signedUrl(path){const {data,error}=await db.storage.from('story-media').createSignedUrl(path,3600);if(error)throw error;return data.signedUrl;}
   async function openViewer(story){
@@ -78,9 +81,8 @@
     }catch(error){alert('Não foi possível publicar o story: '+error.message);}
     finally{button.disabled=false;button.textContent='Publicar story';}
   });
-  document.addEventListener('click',e=>{if(e.target.matches('[data-open="homeScreen"]'))setTimeout(loadStories,150);});
+  document.addEventListener('click',e=>{if(e.target.closest('[data-screen="homeScreen"]'))setTimeout(loadStories,150);});
   db.auth.onAuthStateChange(()=>setTimeout(loadStories,250));
   loadStories();
-  setTimeout(loadStories,900);
   window.refreshBrazillyStories=loadStories;
 })();
