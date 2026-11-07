@@ -57,7 +57,7 @@
     }
     root.replaceChildren(fragment);
   }
-  async function joinCommunity(group){const {error}=await db.from('community_members').insert({community_id:group.id,user_id:currentUser.id,role:'member'});if(error&&error.code!=='23505'){setText('communityStatus','Não foi possível participar: '+error.message);return;}if(!group.is_member)group.member_count=Number(group.member_count||0)+1;group.is_member=true;communitiesCache=null;await openCommunity(group);await renderCommunities(true);}
+  async function joinCommunity(group){const {error}=await db.from('community_members').insert({community_id:group.id,user_id:currentUser.id,role:'member'});if(error&&error.code!=='23505'){setText('communityStatus','Não foi possível participar: '+error.message);return;}if(!error&&!group.is_member)group.member_count=Number(group.member_count||0)+1;group.is_member=true;communitiesCache=null;await openCommunity(group);await renderCommunities(true);}
   function renderCommunityMessages(rows){
     const root=el('communityMessages');root.innerHTML='';let previous=null;
     for(const row of rows||[]){
