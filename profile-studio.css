@@ -151,7 +151,7 @@
   .profile-world-editor-footer>div>*{flex:1}
 }
 @media(prefers-reduced-motion:reduce){
-  .world-info-panel,.world-info-gallery img,.world-edit-trigger{animation:none!important;transition:none!important}
+  .profile-world-info-panel,.world-info-gallery img,.world-edit-trigger{animation:none!important;transition:none!important}
 }
 
 .world-countdown-number{display:block;margin:2px 0 8px;color:var(--profile-accent);font-size:42px;font-weight:900;line-height:1;letter-spacing:-.06em}.world-info-links{display:flex;flex-direction:column;gap:8px}.world-info-links .world-info-link{margin:0;width:fit-content}
