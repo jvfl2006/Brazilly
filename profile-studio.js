@@ -260,9 +260,10 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   const aspectCamera=()=>{
     const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight),aspect=w/h;
     camera.aspect=aspect;
-    const dist=aspect<1.05?14.4:10.2;
-    world.scale.set(aspect<1.05?.78:1,1,1);
-    camera.position.set(aspect<1.05?0:dist*.43,aspect<1.05?5.6:dist*.37,aspect<1.05?dist:dist*.91);
+    const portrait=aspect<1.05;
+    const dist=Math.max(10,5.4/(Math.tan(T.MathUtils.degToRad(19))*Math.min(aspect,1.55)));
+    world.scale.set(portrait?.78:1,1,1);
+    camera.position.set(portrait?0:dist*.43,portrait?dist*.34:dist*.37,portrait?dist:dist*.91);
     camera.lookAt(0,1.38,-.1);camera.updateProjectionMatrix();
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,settings.theme==='pixel'?1:1.5));
     renderer.setSize(Math.round(w*(settings.theme==='pixel'?.58:1)),Math.round(h*(settings.theme==='pixel'?.58:1)),false);
