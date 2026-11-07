@@ -80,20 +80,18 @@
       <section class="conversation-panel">
         <div id="conversationPlaceholder" class="conversation-placeholder"><div class="placeholder-icon">✉</div><h3>Suas conversas começam aqui</h3><p>Abra um perfil e toque em “Enviar mensagem” para iniciar uma conversa direta.</p></div>
         <div id="activeConversation" class="active-conversation" hidden>
-          <header class="conversation-header"><div class="conversation-title"><strong id="conversationName">Conversa</strong><small id="conversationStatus">Mensagens privadas</small></div><div class="conversation-header-actions"><button type="button" class="button button-small button-outline" id="openChatProfileButton">Ver perfil</button><details class="conversation-customize"><summary>Personalizar</summary><div class="conversation-customize-panel"><label for="conversationNickname">Apelido deste contato</label><input id="conversationNickname" maxlength="40" placeholder="Como quer chamar esta pessoa?"><label for="conversationWallpaper">Papel de parede</label><select id="conversationWallpaper"><option value="default">Padrão</option><option value="purple">Aurora roxa</option><option value="midnight">Meia-noite</option><option value="forest">Floresta</option></select><button type="button" class="button button-primary button-small" id="saveConversationSettings">Salvar</button></div></details></div></header>
+          <header class="conversation-header"><div class="conversation-title"><button type="button" class="conversation-avatar-button" id="openChatAvatarButton" aria-label="Abrir perfil do contato"><span id="conversationAvatar" class="conversation-avatar-fallback">B</span></button><div class="conversation-title-text"><strong id="conversationName">Conversa</strong><small id="conversationStatus">Mensagens privadas</small></div></div><div class="conversation-header-actions"><button type="button" class="button button-small button-outline" id="openChatProfileButton">Ver perfil</button><details class="conversation-customize"><summary>Personalizar</summary><div class="conversation-customize-panel"><label for="conversationNickname">Apelido deste contato</label><input id="conversationNickname" maxlength="40" placeholder="Como quer chamar esta pessoa?"><label for="conversationWallpaper">Papel de parede</label><select id="conversationWallpaper"><option value="default">Padrão</option><option value="purple">Aurora roxa</option><option value="midnight">Meia-noite</option><option value="forest">Floresta</option></select><button type="button" class="button button-primary button-small" id="saveConversationSettings">Salvar</button></div></details></div></header>
           <div id="conversationMessages" class="conversation-messages" aria-live="polite"></div>
-          <div class="chat-media-tools">
-  <button type="button" class="button button-small button-outline" id="chooseChatImage">＋ Foto</button>
-  <select id="chatImageQuality" aria-label="Qualidade da imagem"><option value="0.9">Alta</option><option value="0.72" selected>Média</option><option value="0.5">Baixa</option></select>
-  <button type="button" class="button button-small button-outline" id="chooseChatGif">GIF / figurinha</button>
-  <input id="chatImageInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
-  <input id="chatGifInput" type="file" accept="image/gif,image/png,image/webp" hidden>
-  <button type="button" class="button button-small button-outline" id="emojiToggle">☺ Emoji</button>
-  <button type="button" class="button button-small button-outline" id="recordAudioButton">● Gravar áudio</button>
-  <span id="audioRecordStatus" class="field-note" aria-live="polite"></span>
-</div>
+<input id="chatImageInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+<select id="chatImageQuality" aria-label="Qualidade da imagem" hidden><option value="0.9">Alta</option><option value="0.72" selected>Média</option><option value="0.5">Baixa</option></select>
 <div id="emojiTray" class="emoji-tray" hidden></div>
-<form id="directMessageForm" class="direct-message-form"><input id="directMessageInput" maxlength="2000" autocomplete="off" placeholder="Escreva uma mensagem..." required><button class="button button-primary" type="submit">Enviar</button></form>
+<form id="directMessageForm" class="direct-message-form">
+<button type="button" class="composer-icon-button" id="emojiToggle" aria-label="Inserir emoji" title="Emoji">☺</button>
+<input id="directMessageInput" maxlength="2000" autocomplete="off" placeholder="Escreva uma mensagem..." required>
+<button type="button" class="composer-icon-button" id="chooseChatImage" aria-label="Anexar imagem" title="Anexar imagem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5 12.5 20a5 5 0 0 1-7.1-7.1l9.2-9.2a3.5 3.5 0 0 1 5 5l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg></button>
+<button type="button" class="composer-action-button" id="recordAudioButton" aria-label="Gravar áudio" title="Gravar áudio"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg></button>
+</form>
+<span id="audioRecordStatus" class="field-note composer-audio-status" aria-live="polite"></span>
         </div>
       </section>
     </div>
