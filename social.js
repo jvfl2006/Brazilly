@@ -68,8 +68,12 @@
       const cities = await response.json();
       const list = $('brazilCities');
       cities.forEach(city => {
+        const uf = city.microrregiao?.mesorregiao?.UF?.sigla
+          || city.regiao-imediata?.regiao-intermediaria?.UF?.sigla
+          || city['regiao-imediata']?.['regiao-intermediaria']?.UF?.sigla;
+        if (!uf || !city.nome) return;
         const option = document.createElement('option');
-        option.value = city.nome + ' - ' + city.microrregiao.mesorregiao.UF.sigla;
+        option.value = city.nome + ' - ' + uf;
         list.append(option);
       });
     } catch (error) {
@@ -83,6 +87,7 @@
     p.profession = $('profession')?.value.trim() || '';
     p.religion = $('religion')?.value.trim() || '';
     p.relationshipStatus = $('relationshipStatus')?.value || '';
+    p.isPrivate = Boolean($('privateProfile')?.checked);
     return p;
   };
 
@@ -92,7 +97,8 @@
     const { error } = await db.from('profiles').update({
       profession: p.profession || null,
       religion: p.religion || null,
-      relationship_status: p.relationshipStatus || null
+      relationship_status: p.relationshipStatus || null,
+      is_private: Boolean(p.isPrivate)
     }).eq('user_id', currentUser.id);
     if (error) throw error;
     currentProfile = { ...currentProfile, ...p };
@@ -122,6 +128,7 @@
     if ($('profession')) $('profession').value = p.profession || '';
     if ($('religion')) $('religion').value = p.religion || '';
     if ($('relationshipStatus')) $('relationshipStatus').value = p.relationshipStatus || '';
+    if ($('privateProfile')) $('privateProfile').checked = Boolean(p.isPrivate);
   };
 
   function refreshSignupLabels() {
@@ -152,6 +159,7 @@
       fields.filter(x=>x[1]).forEach(([label,value])=>{
         const line=document.createElement('p');line.className='field-note';line.textContent=label+': '+value;meta.append(line);
       });
+      if(p.is_private){const line=document.createElement('p');line.className='field-note';line.textContent='Perfil privado';meta.append(line);}
     }
     if (otherId === currentUser.id) return;
     const [favorite, outgoing, incoming, blocked] = await Promise.all([
@@ -211,9 +219,49 @@
   }
 
   const originalOpenDetails = openProfileDetails;
-  openProfileDetails = function(profile) {
-    originalOpenDetails(profile);
-    renderSocialActions();
+  openProfileDetails = async function(profile) {
+    await originalOpenDetails(profile);
+    await renderSocialActions();
+  };
+
+  async function renderIncomingRequests() {
+    const root = $('incomingFriendRequests');
+    if (!root) return;
+    root.innerHTML = '';
+    if (!currentUser) { root.textContent = 'Entre para ver solicitações.'; return; }
+    const {data:requests,error} = await db.rpc('list_friend_requests');
+    if (error) { root.textContent = 'Não foi possível carregar solicitações: ' + error.message; return; }
+    if (!requests?.length) { root.textContent = 'Nenhuma solicitação pendente.'; return; }
+    requests.forEach(request => {
+      const item = document.createElement('div');
+      item.className = 'incoming-request-item';
+      const name = document.createElement('strong');
+      name.textContent = request.display_name || 'Usuário';
+      const accept = document.createElement('button');
+      accept.type = 'button'; accept.className = 'button button-primary button-small'; accept.textContent = 'Aceitar';
+      accept.addEventListener('click', async () => {
+        accept.disabled = true;
+        const {error:updateError} = await db.from('friend_requests').update({status:'accepted'}).eq('id',request.id);
+        if (updateError) { alert(updateError.message); accept.disabled = false; return; }
+        await renderIncomingRequests();
+      });
+      const reject = document.createElement('button');
+      reject.type = 'button'; reject.className = 'button button-outline button-small'; reject.textContent = 'Recusar';
+      reject.addEventListener('click', async () => {
+        reject.disabled = true;
+        const {error:updateError} = await db.from('friend_requests').update({status:'rejected'}).eq('id',request.id);
+        if (updateError) { alert(updateError.message); reject.disabled = false; return; }
+        await renderIncomingRequests();
+      });
+      item.append(name,accept,reject);
+      root.append(item);
+    });
+  }
+
+  const originalConversationList = renderConversationList;
+  renderConversationList = async function() {
+    await originalConversationList();
+    await renderIncomingRequests();
   };
 
   // Abre o perfil diretamente pela conversa, sem precisar voltar à descoberta.
@@ -231,7 +279,7 @@
       if(!row)return;
       const {data,error:profileError}=await db.rpc('get_profile_details',{p_user_id:row.other_user_id});
       if(profileError)return alert(profileError.message);
-      if(data?.length)openProfileDetails(data[0]);
+      if(data?.length)await openProfileDetails(data[0]);
     });
   }
 
