@@ -11,7 +11,7 @@
     if(error){strip.textContent='Não foi possível carregar stories.';console.warn(error);return;}
     stories=data||[];
     const own=stories.filter(s=>s.user_id===currentUser.id);
-    const userIds=[...new Set(stories.map(s=>s.user_id))];
+    const userIds=[...new Set([...stories.map(s=>s.user_id),currentUser.id])];
     const avatarUrls=new Map();
     if(userIds.length){
       const {data:photos,error:photoError}=await db.from('profile_photos').select('user_id,storage_path').in('user_id',userIds).eq('is_primary',true);
