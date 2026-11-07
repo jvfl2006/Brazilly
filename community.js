@@ -1,6 +1,7 @@
 (() => {
   'use strict';
-  const el = id => document.getElementById(id);\n  if (!db) return;
+  const el = id => document.getElementById(id);
+  if (!db) return;
   let randomSessionId = null, randomPartnerId = null, randomChannel = null, randomPoll = null, randomSessionWatch = null;
   let communityId = null, communityChannel = null;
   const setText=(id,value)=>{const node=el(id);if(node)node.textContent=value;};
