@@ -160,13 +160,9 @@ async function loadCommunityHub(){
  }
  if(suggestionsResult.error){suggestionsRoot.replaceChildren(communityElement('p','field-note','Não foi possível carregar as sugestões: '+suggestionsResult.error.message));return;}
  const rows=suggestionsResult.data||[],authorIds=[...new Set(rows.map(x=>x.author_id))],suggestionIds=rows.map(x=>x.id);
- const [profilesResult,votesResult]=await Promise.all([
-  authorIds.length?db.from('profiles').select('user_id,display_name').in('user_id',authorIds):Promise.resolve({data:[],error:null}),
-  suggestionIds.length?db.from('community_suggestion_votes').select('suggestion_id,user_id').in('suggestion_id',suggestionIds):Promise.resolve({data:[],error:null})
- ]);
- const authorNames=new Map((profilesResult.data||[]).map(x=>[x.user_id,x.display_name||'Pessoa da comunidade']));
+ const votesResult=await db.rpc('get_community_suggestion_vote_counts');
  const voteCounts=new Map(),myVotes=new Set();
- for(const vote of votesResult.data||[]){voteCounts.set(vote.suggestion_id,(voteCounts.get(vote.suggestion_id)||0)+1);if(currentUser&&vote.user_id===currentUser.id)myVotes.add(vote.suggestion_id);}
+ for(const vote of votesResult.data||[]){voteCounts.set(vote.suggestion_id,Number(vote.vote_count)||0);if(vote.has_voted)myVotes.add(vote.suggestion_id);}
  suggestionsRoot.replaceChildren();
  if(!rows.length)suggestionsRoot.append(communityElement('p','community-empty','Ainda não há sugestões. Sua ideia pode ser a primeira.'));
  for(const item of rows){
