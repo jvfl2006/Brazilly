@@ -24,8 +24,56 @@ async function refreshModerationAccess(){
   }
   updateHeaderAccountButtons();
 }
+let unreadConversationChannel=null;
+let unreadRefreshTimer=null;
+function setUnreadConversationCount(count){
+  const value=Math.max(0,Number(count)||0);
+  ['headerUnreadBadge','homeUnreadBadge'].forEach(id=>{
+    const badge=$(id);if(!badge)return;
+    badge.textContent=value>99?'99+':String(value);badge.hidden=value===0;
+  });
+  const nav=$('messagesButton');
+  if(nav)nav.setAttribute('aria-label',value?('Mensagens, '+value+' conversas não lidas'):'Mensagens');
+}
+async function refreshUnreadConversationCount(){
+  if(!currentUser||!db){setUnreadConversationCount(0);return;}
+  try{
+    const {data:conversations,error:conversationError}=await db.rpc('list_my_conversations');
+    if(conversationError)throw conversationError;
+    const ids=(conversations||[]).map(row=>row.conversation_id).filter(Boolean);
+    if(!ids.length){setUnreadConversationCount(0);return;}
+    const {data:unread,error}=await db.from('messages').select('conversation_id')
+      .in('conversation_id',ids).neq('sender_id',currentUser.id).is('read_at',null);
+    if(error)throw error;
+    setUnreadConversationCount(new Set((unread||[]).map(row=>row.conversation_id)).size);
+  }catch(error){console.warn('Não foi possível atualizar o contador de mensagens:',error.message);}
+}
+function scheduleUnreadRefresh(){
+  if(unreadRefreshTimer)clearTimeout(unreadRefreshTimer);
+  unreadRefreshTimer=setTimeout(refreshUnreadConversationCount,180);
+}
+function subscribeToUnreadMessages(){
+  if(unreadConversationChannel)db.removeChannel(unreadConversationChannel);
+  if(!currentUser)return;
+  unreadConversationChannel=db.channel('brazilly-unread-'+currentUser.id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'messages'},scheduleUnreadRefresh).subscribe();
+}
+function updateHomeExperience(){
+  const loggedIn=Boolean(currentUser),hasProfile=Boolean(currentProfile);
+  const hero=document.querySelector('.hero-section');if(hero)hero.hidden=loggedIn;
+  $('homeMemberPanel').hidden=!(loggedIn&&hasProfile);
+  $('homeProfileSetupPanel').hidden=!(loggedIn&&!hasProfile);
+  $('homeStoriesSection').hidden=!(loggedIn&&hasProfile);
+  document.querySelector('.features-section')?.toggleAttribute('hidden',loggedIn);
+  document.querySelector('.free-section')?.toggleAttribute('hidden',loggedIn);
+  if(loggedIn&&hasProfile){
+    const firstName=(currentProfile.name||currentProfile.display_name||currentUser.email?.split('@')[0]||'por aqui').trim().split(/\s+/)[0];
+    $('homeWelcomeTitle').textContent='Bom te ver, '+firstName+'.';
+  }
+}
 function updateHeaderAccountButtons(){
   const loggedIn=Boolean(currentUser);
+  updateHomeExperience();
   $('signupButton').hidden=loggedIn;
   $('heroSignupButton').hidden=loggedIn;
   $('heroLoginButton').hidden=loggedIn;
@@ -57,7 +105,7 @@ function showScreen(id) {
   headerNav?.classList.remove('open');
   mobileMenuButton?.setAttribute('aria-expanded', 'false');
   if (id === 'discoverScreen') renderProfiles();
-  if (id === 'messagesScreen') renderConversationList();
+  if (id === 'messagesScreen') { renderConversationList(); scheduleUnreadRefresh(); }
   if (id === 'profileScreen') renderProfilePreview();
   if (id === 'moderationScreen') renderModerationReports();
 }
@@ -258,10 +306,12 @@ async function initAuth(){
   if(currentUser){try{await fetchProfileFromServer();const pending=sessionStorage.getItem('brazilly.pendingProfile');if(pending){const draft=JSON.parse(pending);await syncProfileToSupabase(draft);sessionStorage.removeItem('brazilly.pendingProfile');} }catch(error){console.error('Falha ao carregar perfil:',error);}}
   await refreshModerationAccess();
   updateHeaderAccountButtons();
+  await refreshUnreadConversationCount();
+  subscribeToUnreadMessages();
   authReady=true;
   db.auth.onAuthStateChange((event,sessionNow)=>{
     currentUser=sessionNow?.user||null;
-    if(!currentUser){currentProfile=null;isModerator=false;updateHeaderAccountButtons();renderProfiles();return;}
+    if(!currentUser){currentProfile=null;isModerator=false;if(unreadConversationChannel){db.removeChannel(unreadConversationChannel);unreadConversationChannel=null;}setUnreadConversationCount(0);updateHeaderAccountButtons();renderProfiles();return;}
     const pendingEmailLink=JSON.parse(localStorage.getItem('brazilly.emailLinkPending')||'null');
     if(event==='SIGNED_IN'&&pendingEmailLink?.userId===currentUser.id&&pendingEmailLink.expiresAt>Date.now()){
       localStorage.removeItem('brazilly.emailLinkPending');
@@ -270,11 +320,11 @@ async function initAuth(){
     if(event==='PASSWORD_RECOVERY'){
       setTimeout(async()=>{const next=prompt('Digite sua nova senha (mínimo de 8 caracteres):');if(next&&next.length>=8){const {error}=await db.auth.updateUser({password:next});alert(error?error.message:'Senha atualizada com sucesso.');}else if(next!==null){alert('A senha precisa ter pelo menos 8 caracteres.');}},0);
     }
-    setTimeout(async()=>{try{await fetchProfileFromServer();await refreshModerationAccess();updateHeaderAccountButtons();renderProfiles();}catch(error){console.error(error);}},0);
+    setTimeout(async()=>{try{await fetchProfileFromServer();await refreshModerationAccess();updateHeaderAccountButtons();await refreshUnreadConversationCount();subscribeToUnreadMessages();renderProfiles();}catch(error){console.error(error);}},0);
   });
   if(currentUser&&currentProfile){$('loginButton').textContent='Minha conta';}renderProfiles();
 }
-$('loginForm').addEventListener('submit',async e=>{e.preventDefault();if(!db){alert('O serviço de autenticação não carregou. Atualize a página.');return;}const button=$('loginSubmit');button.disabled=true;button.textContent='Entrando...';try{const {data,error}=await db.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});if(error)throw error;currentUser=data.user;await fetchProfileFromServer();const pending=sessionStorage.getItem('brazilly.pendingProfile');if(pending){await syncProfileToSupabase(JSON.parse(pending));sessionStorage.removeItem('brazilly.pendingProfile');}closeModal('loginModal');$('loginPassword').value='';updateHeaderAccountButtons();if(currentProfile){renderProfilePreview();showScreen('profileScreen');}else{alert('Conta autenticada. Complete seu perfil.');clearWizard();$('profileEmail').value=currentUser.email||'';$('profileEmail').readOnly=true;showScreen('authScreen');}}catch(error){alert(`Não foi possível entrar: ${error.message}`);}finally{button.disabled=false;button.textContent='Entrar';}});
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();if(!db){alert('O serviço de autenticação não carregou. Atualize a página.');return;}const button=$('loginSubmit');button.disabled=true;button.textContent='Entrando...';try{const {data,error}=await db.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});if(error)throw error;currentUser=data.user;await fetchProfileFromServer();const pending=sessionStorage.getItem('brazilly.pendingProfile');if(pending){await syncProfileToSupabase(JSON.parse(pending));sessionStorage.removeItem('brazilly.pendingProfile');}closeModal('loginModal');$('loginPassword').value='';updateHeaderAccountButtons();await refreshUnreadConversationCount();subscribeToUnreadMessages();if(currentProfile){renderProfilePreview();showScreen('profileScreen');}else{alert('Conta autenticada. Complete seu perfil.');clearWizard();$('profileEmail').value=currentUser.email||'';$('profileEmail').readOnly=true;showScreen('authScreen');}}catch(error){alert(`Não foi possível entrar: ${error.message}`);}finally{button.disabled=false;button.textContent='Entrar';}});
 $('forgotPasswordButton').addEventListener('click',async()=>{if(!db){alert('O serviço de autenticação não carregou.');return;}const email=$('loginEmail').value.trim();if(!email){alert('Informe seu e-mail primeiro.');return;}const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});if(error)alert(error.message);else alert('Se o endereço estiver cadastrado, você receberá um e-mail para redefinir a senha.');});
 async function renderProfilePreview(){const p=currentProfile,root=$('profilePreview');root.innerHTML='';if(!p){root.textContent='Entre na sua conta para carregar seu perfil.';return;}const h=document.createElement('h2');h.textContent=`${p.name}${p.showAge?`, ${p.age}`:''}`;root.append(h);if(p.showCity&&p.city){const c=document.createElement('p');c.className='field-note';c.textContent=p.city;root.append(c);}if(p.photos?.length){const photosEl=document.createElement('div');photosEl.className='preview-photos';p.photos.forEach(ph=>{const img=document.createElement('img');img.src=ph.data;img.alt='Foto do perfil';photosEl.append(img);});root.append(photosEl);}if(p.bio){const bio=document.createElement('p');bio.textContent=p.bio;root.append(bio);}const fields=[['Gênero',p.gender],['Signo',p.zodiac],['Altura',p.height?`${p.height} cm`:'' ],['Escolaridade',p.education],['Profissão',p.profession],['Religião / crença',p.religion],['Relacionamento',p.relationshipStatus],['Personalidade',p.personality],['Pets',p.pets],['Filhos',p.children],['Intenções',p.intentions?.join(', ')]];fields.filter(x=>x[1]).forEach(([k,v])=>{const row=document.createElement('p');row.className='field-note';row.textContent=`${k}: ${v}`;root.append(row);});if(p.interests?.length){const title=document.createElement('h3');title.textContent='Interesses';root.append(title);const tags=document.createElement('div');tags.className='preview-tags';p.interests.forEach(x=>{const tag=document.createElement('span');tag.textContent=x;tags.append(tag);});root.append(tags);}}
 async function editProfile(){let p=currentProfile;if(!p&&currentUser)p=await fetchProfileFromServer();if(!p){alert('Entre na sua conta para editar o perfil.');return;}editingProfile=true;$('profileName').value=p.name||'';$('profileEmail').value=p.email||'';$('profileEmail').readOnly=true;$('profilePassword').value='';$('birthDate').value=p.birthDate||'';['gender','sexuality','height','education','personality','pets','children','bio','drinkFrequency','smokeFrequency','exerciseFrequency','city'].forEach((id,i)=>{const keys=['gender','sexuality','height','education','personality','pets','children','bio','drink','smoke','exercise','city'];$(id).value=p[keys[i]]||'';});$('profession').value=p.profession||'';$('religion').value=p.religion||'';$('relationshipStatus').value=p.relationshipStatus||'';$('zodiac').value=p.zodiac||'';$('showAge').checked=p.showAge!==false;$('showCity').checked=p.showCity===true;$('privateProfile').checked=p.privateProfile===true;selectedInterests=new Set(p.interests||[]);photos=p.photos||[];renderPhotos();renderInterestCategories();renderSelectedInterests();$('intentOptions').querySelectorAll('input').forEach(x=>x.checked=(p.intentions||[]).includes(x.value));setWizardStep(0);showScreen('authScreen');}
@@ -444,6 +494,10 @@ $('messagesButton').addEventListener('click', () => {
   if (!currentUser) { openModal('loginModal'); return; }
   showScreen('messagesScreen');
 });
+$('homeMessagesButton').addEventListener('click',()=>showScreen('messagesScreen'));
+$('homeCompleteProfileButton').addEventListener('click',()=>{
+  clearWizard();$('profileEmail').value=currentUser?.email||'';$('profileEmail').readOnly=true;showScreen('authScreen');
+});
 $('refreshConversations').addEventListener('click', renderConversationList);
 
 function addMessageToView(message) {
@@ -498,6 +552,7 @@ async function loadConversationMessages(conversationId) {
   (data || []).forEach(addMessageToView);
   const unread = (data || []).filter(m => m.sender_id !== currentUser.id && !m.read_at).map(m => m.id);
   if (unread.length) await markConversationMessagesRead(conversationId,unread);
+  scheduleUnreadRefresh();
 }
 async function markConversationMessagesRead(conversationId,ids){
   const {data:settings,error:settingsError}=await db.from('profiles').select('read_receipts').eq('user_id',currentUser.id).maybeSingle();
@@ -505,6 +560,7 @@ async function markConversationMessagesRead(conversationId,ids){
   let query=db.from('messages').update({read_at:new Date().toISOString()}).eq('conversation_id',conversationId).neq('sender_id',currentUser.id).is('read_at',null);
   if(ids?.length)query=query.in('id',ids);
   const {error}=await query;if(error)console.warn('Não foi possível atualizar a confirmação de leitura:',error.message);
+  scheduleUnreadRefresh();
 }
 async function markConversationMessageRead(messageId){if(!activeConversationId)return;await markConversationMessagesRead(activeConversationId,[messageId]);}
 function subscribeToConversation(conversationId) {
