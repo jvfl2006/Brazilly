@@ -211,7 +211,8 @@ $('communityUpdateForm').addEventListener('submit',async event=>{
  else{$('communityUpdateForm').reset();alert('Novidade publicada.');}
  button.disabled=false;button.textContent='Publicar novidade';await loadCommunityHub();
 });
-\nfunction showScreen(id) {
+
+function showScreen(id) {
   screens.forEach(s => s.classList.toggle('active', s.id === id));
   window.scrollTo({ top: 0, behavior: 'smooth' });
   headerNav?.classList.remove('open');
