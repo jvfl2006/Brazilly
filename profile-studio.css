@@ -490,7 +490,7 @@
 /* Profile hero portrait: prominent avatar anchored to the left edge of the profile card. */
 .profile-world-page .profile-world-stage-2d .profile-world-objects{display:none!important;visibility:hidden!important;pointer-events:none!important}
 .profile-world-page .profile-world-stage-2d .profile-world-featured-avatar{
- position:absolute;z-index:12;left:calc(50% - min(560px, (100% - 88px)/2) - 94px);top:clamp(185px,22vh,255px);
+ position:absolute;z-index:12;left:clamp(14px,calc(50% - 654px),480px);top:clamp(185px,22vh,255px);
  width:clamp(132px,10.5vw,190px);height:clamp(132px,10.5vw,190px);
  border:5px solid rgba(247,235,255,.96);border-radius:50%;
  background-color:#30224d;background-size:cover;background-position:center;
@@ -523,5 +523,5 @@
 }
 
 #profileScreen .profile-world-stage-2d .profile-world-objects,#profileScreen .profile-world-stage-2d .profile-world-object{display:none!important;visibility:hidden!important;pointer-events:none!important}
-#profileScreen .profile-world-stage-2d .profile-world-featured-avatar{left:calc(50% - min(560px, (100% - 88px)/2) - 94px)}
+#profileScreen .profile-world-stage-2d .profile-world-featured-avatar{left:clamp(14px,calc(50% - 654px),480px)}
 @media(max-width:760px){#profileScreen .profile-world-stage-2d .profile-world-featured-avatar{left:14px;top:205px;width:104px;height:104px}#profileScreen .profile-world-profile-card{top:245px}}
