@@ -587,3 +587,57 @@
  .profile-world-tab-panel .profile-world-mini-gallery{grid-template-columns:repeat(3,minmax(0,1fr))}
  .profile-world-tab-panel .profile-world-mini-gallery img{height:76px}
 }
+
+
+/* Profile header and full-size photo viewer corrections. */
+.profile-world-page .profile-world-stage-2d .profile-world-header-avatar{
+ position:relative;inset:auto;z-index:2;flex:0 0 clamp(112px,9vw,148px);
+ width:clamp(112px,9vw,148px);height:clamp(112px,9vw,148px);
+ border:5px solid rgba(247,235,255,.97);border-radius:50%;
+ background-color:#30224d;background-size:cover;background-position:center;
+ box-shadow:0 0 0 6px rgba(176,119,255,.22),0 12px 34px rgba(8,5,24,.4);
+}
+.profile-world-page .profile-world-profile-card .profile-world-card-heading{
+ display:grid;grid-template-columns:clamp(112px,9vw,148px) minmax(0,1fr) minmax(180px,.8fr);
+ align-items:center;justify-content:initial;gap:22px;min-height:170px;
+ padding:18px 28px 18px 24px;
+}
+.profile-world-page .profile-world-profile-card .profile-world-card-intro{max-width:none}
+.profile-world-page .profile-world-profile-card .profile-world-identity{justify-self:end}
+.profile-world-page .profile-world-profile-tabs{padding:11px 24px;gap:9px}
+.profile-world-about-aside{grid-template-columns:1fr;align-content:start}
+.profile-world-about-aside .profile-world-mini-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.profile-world-about-aside .profile-world-mini-gallery img{width:100%;height:110px;object-fit:cover;border-radius:11px;cursor:zoom-in}
+.profile-world-tab-panel .preview-photos img,.profile-world-mini-gallery img,.public-world-gallery img{cursor:zoom-in}
+.profile-world-tab-panel .preview-photos img:focus-visible,.profile-world-mini-gallery img:focus-visible,.public-world-gallery img:focus-visible{outline:3px solid #d5b6ff;outline-offset:3px}
+.profile-photo-viewer[hidden]{display:none}
+.profile-photo-viewer{
+ position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+ padding:5vh 7vw;background:rgba(7,5,16,.92);backdrop-filter:blur(14px);
+}
+.profile-photo-viewer-image{max-width:min(86vw,1300px);max-height:86vh;width:auto;height:auto;object-fit:contain;border-radius:12px;box-shadow:0 25px 100px #000a}
+.profile-photo-viewer button{
+ position:absolute;display:grid;place-items:center;border:1px solid #ffffff35;border-radius:50%;
+ background:rgba(35,25,58,.88);color:#fff;cursor:pointer;box-shadow:0 6px 25px #0005;
+}
+.profile-photo-viewer-close{top:24px;right:28px;width:46px;height:46px;font-size:30px}
+.profile-photo-viewer-prev,.profile-photo-viewer-next{top:50%;transform:translateY(-50%);width:52px;height:52px;font-size:38px}
+.profile-photo-viewer-prev{left:24px}.profile-photo-viewer-next{right:24px}
+.profile-photo-viewer button:disabled{opacity:.35;cursor:default}
+.profile-photo-viewer-count{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);color:#fff;font-size:12px;text-shadow:0 2px 8px #000}
+body.profile-photo-viewer-open{overflow:hidden}
+@media(max-width:760px){
+ .profile-world-page .profile-world-profile-card .profile-world-card-heading{
+  grid-template-columns:76px minmax(0,1fr);gap:13px;min-height:112px;padding:13px 14px;
+ }
+ .profile-world-page .profile-world-stage-2d .profile-world-header-avatar{width:76px;height:76px;flex-basis:76px;border-width:4px}
+ .profile-world-page .profile-world-profile-card .profile-world-card-intro{display:block;grid-column:2;grid-row:1}
+ .profile-world-page .profile-world-profile-card .profile-world-card-subtitle{display:none}
+ .profile-world-page .profile-world-profile-card .profile-world-identity{grid-column:2;grid-row:2;justify-self:start}
+ .profile-world-page .profile-world-profile-card .profile-world-identity .world-identity-copy{font-size:17px}
+ .profile-world-page .profile-world-profile-card .profile-world-identity .world-identity-location{margin-top:2px;font-size:11px}
+ .profile-world-page .profile-world-profile-tabs{padding:9px 12px;gap:4px}
+ .profile-photo-viewer{padding:6vh 12px}
+ .profile-photo-viewer-prev{left:8px}.profile-photo-viewer-next{right:8px}
+ .profile-photo-viewer-prev,.profile-photo-viewer-next{width:40px;height:40px}
+}

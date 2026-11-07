@@ -107,11 +107,45 @@ async function render(root,profile,raw,editable=false){
  const update=()=>{s.theme=$('worldThemeSelect').value;s.room.time=$('worldTimeSelect').value;s.room.weather=$('worldWeatherSelect').value;s.accent=$('worldAccentSelect').value;ctl.apply();};$('worldSceneFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const status=$('worldSceneStatus');const allowed=['image/gif','image/webp','image/png','image/jpeg','image/avif','video/mp4','video/webm'];if(!allowed.includes(file.type)||file.size>30*1024*1024){status.textContent='Arquivo inválido. Use GIF, WebP, MP4 ou WebM de até 30 MB.';e.target.value='';return;}status.textContent='Enviando cenário...';try{const ext=({'image/gif':'gif','image/webp':'webp','image/png':'png','image/jpeg':'jpg','image/avif':'avif','video/mp4':'mp4','video/webm':'webm'})[file.type];const path=currentUser.id+'/'+crypto.randomUUID()+'.'+ext;const {error}=await db.storage.from('profile-scenes').upload(path,file,{contentType:file.type,cacheControl:'31536000',upsert:false});if(error)throw error;s.room.background=path;s.room.backgroundType=ext;s.room.preset='';const {data,error:signedError}=await db.storage.from('profile-scenes').createSignedUrl(path,3600);if(signedError)throw signedError;const media=ext==='mp4'||ext==='webm'?el('video','profile-world-animated-background'):el('img','profile-world-animated-background');if(media.tagName==='VIDEO'){media.src=signedError? '':data.signedUrl;media.autoplay=true;media.loop=true;media.muted=true;media.playsInline=true;media.preload='metadata';}else{media.src=data.signedUrl;media.alt='Cenário animado do perfil';}m.bg.replaceChildren(media);$('worldSceneRemove').disabled=false;status.textContent='Cenário carregado. Salve para publicar no perfil.';}catch(err){status.textContent='Falha ao enviar: '+err.message;}finally{e.target.value='';}});$('worldSceneRemove').addEventListener('click',()=>{s.room.background='';s.room.backgroundType='';s.room.preset='';m.bg.innerHTML=scene(s);gallery.querySelectorAll('.profile-scene-card').forEach(x=>x.classList.remove('is-active'));$('worldSceneRemove').disabled=true;$('worldSceneStatus').textContent='Cenário padrão restaurado. Salve para confirmar.';});['worldThemeSelect','worldTimeSelect','worldWeatherSelect'].forEach(id=>$(id).addEventListener('change',update));$('worldAccentSelect').addEventListener('input',update);$('worldCancelEdit').addEventListener('click',renderOwn);
  $('worldSaveEdit').addEventListener('click',async()=>{const b=$('worldSaveEdit'),hint=$('worldEditorHint');if(!currentUser)return;b.disabled=true;b.textContent='Salvando...';try{s.quote=$('worldQuote').value.trim();s.music=$('worldMusic').value.trim();s.musicUrl=$('worldMusicUrl').value.trim();s.games=$('worldGames').value.trim();s.setup=$('worldSetup').value.trim();s.countdownTitle=$('worldCountdownTitle').value.trim();s.countdownDate=$('worldCountdownDate').value;s.links=$('worldLinks').value.split('\n').map(line=>{const a=line.split('|');return{label:(a.shift()||'').trim(),url:a.join('|').trim()};}).filter(x=>x.label&&safeUrl(x.url)).slice(0,8);const saved=norm(s),{error}=await db.from('profile_customizations').upsert({user_id:currentUser.id,settings:saved,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;cache.set(currentUser.id,saved);currentProfile.profileCustomization=saved;await renderOwn();}catch(e){hint.textContent='Não foi possível salvar: '+e.message;}finally{b.disabled=false;b.textContent='Salvar ambiente';}});
 }
+
+function installProfilePhotoViewer(root){
+ if(!root||root.dataset.photoViewerReady==='true')return;
+ root.dataset.photoViewerReady='true';
+ const overlay=el('div','profile-photo-viewer');
+ overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Visualização de fotos');
+ const image=el('img','profile-photo-viewer-image');image.alt='Foto ampliada do perfil';
+ const close=el('button','profile-photo-viewer-close','×');close.type='button';close.setAttribute('aria-label','Fechar foto');
+ const previous=el('button','profile-photo-viewer-prev','‹');previous.type='button';previous.setAttribute('aria-label','Foto anterior');
+ const next=el('button','profile-photo-viewer-next','›');next.type='button';next.setAttribute('aria-label','Próxima foto');
+ const count=el('span','profile-photo-viewer-count');
+ overlay.append(image,close,previous,next,count);root.append(overlay);
+ let urls=[],index=0,lastFocus=null;
+ const render=()=>{image.src=urls[index];count.textContent=(index+1)+' / '+urls.length;previous.disabled=urls.length<2;next.disabled=urls.length<2;};
+ const hide=()=>{overlay.hidden=true;image.removeAttribute('src');document.body.classList.remove('profile-photo-viewer-open');if(lastFocus?.isConnected)lastFocus.focus();};
+ const show=(items,at,trigger)=>{urls=items;index=at;lastFocus=trigger;render();overlay.hidden=false;document.body.classList.add('profile-photo-viewer-open');close.focus();};
+ const move=step=>{if(urls.length<2)return;index=(index+step+urls.length)%urls.length;render();};
+ root.addEventListener('click',event=>{
+  const thumb=event.target.closest('.preview-photos img,.profile-world-mini-gallery img,.public-world-gallery img');
+  if(!thumb||!root.contains(thumb))return;
+  const gallery=thumb.closest('.preview-photos,.profile-world-mini-gallery,.public-world-gallery');
+  const imgs=[...(gallery?.querySelectorAll('img')||[thumb])].filter(item=>item.src);
+  const current=Math.max(0,imgs.indexOf(thumb));
+  event.preventDefault();show(imgs.map(item=>item.currentSrc||item.src),current,thumb);
+ });
+ root.addEventListener('keydown',event=>{
+  if(event.target.matches('.preview-photos img,.profile-world-mini-gallery img,.public-world-gallery img')&&(event.key==='Enter'||event.key===' ')){event.preventDefault();event.target.click();}
+ });
+ close.addEventListener('click',hide);previous.addEventListener('click',()=>move(-1));next.addEventListener('click',()=>move(1));
+ overlay.addEventListener('click',event=>{if(event.target===overlay)hide();});
+ document.addEventListener('keydown',event=>{if(overlay.hidden)return;if(event.key==='Escape')hide();if(event.key==='ArrowLeft')move(-1);if(event.key==='ArrowRight')move(1);});
+}
 function enhanceProfileCard(stage,preview,settings={}){
  if(!stage||!preview||stage.querySelector('.profile-world-profile-card'))return;
  const identity=stage.querySelector('.profile-world-identity');
  const card=el('section','profile-world-profile-card');
  const heading=el('div','profile-world-card-heading');
+ const featuredAvatar=stage.querySelector('.profile-world-featured-avatar');
+ if(featuredAvatar){featuredAvatar.classList.remove('profile-world-featured-avatar');featuredAvatar.classList.add('profile-world-header-avatar');heading.append(featuredAvatar);}
  const intro=el('div','profile-world-card-intro');
  intro.append(el('span','profile-world-card-kicker','SEU ESPAÇO NO BRAZILLY'),el('p','profile-world-card-subtitle','Seu universo, suas histórias e tudo que faz parte de você.'));
  heading.append(intro);
@@ -184,6 +218,7 @@ function enhanceProfileCard(stage,preview,settings={}){
  preview.replaceChildren(content);
  card.append(tabs,preview);
  stage.append(card);
+ installProfilePhotoViewer(stage);
 }
 async function renderOwn(){if(!currentUser||!currentProfile)return;try{const s=await load(currentUser.id);currentProfile.profileCustomization=s;await render($('profileCustomizationPreview'),currentProfile,s,true);const stage=$('profileCustomizationPreview')?.querySelector('.profile-world-stage-2d');const preview=$('profilePreview'),editProfile=$('profileEditButton');if(stage&&preview)enhanceProfileCard(stage,preview,s);if(stage&&editProfile){editProfile.classList.add('profile-world-edit-profile');stage.append(editProfile);}const page=$('profileScreen');if(page)page.classList.add('profile-world-page');}catch(e){console.warn(e);if($('profileCustomizationPreview'))$('profileCustomizationPreview').textContent='Não foi possível carregar seu ambiente personalizado.';}}
 function publicProfileCard(p,photosList){const card=el('section','profile-public-world-card');const heading=el('div','public-world-heading');heading.append(el('span','public-world-kicker','CONHEÇA ESTE CANTINHO'),el('h2','',p.display_name||p.name||'Perfil'));if(p.bio)heading.append(el('p','',p.bio));card.append(heading);if(p.interests?.length){const tags=el('div','public-world-tags');p.interests.slice(0,12).forEach(x=>tags.append(el('span','',x)));card.append(tags);}if(photosList.length){const gallery=el('div','public-world-gallery');photosList.slice(0,6).forEach(url=>{const img=el('img','');img.src=url;img.alt='Foto de '+(p.display_name||p.name||'perfil');gallery.append(img);});card.append(gallery);}return card;}
