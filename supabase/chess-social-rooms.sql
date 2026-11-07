@@ -52,6 +52,8 @@ alter table public.chess_room_members enable row level security;
 alter table public.chess_games enable row level security;
 alter table public.chess_room_messages enable row level security;
 grant select on public.chess_room_members,public.chess_games,public.chess_room_messages to authenticated;
+drop policy if exists chess_rooms_no_direct_client_read on public.chess_rooms;
+create policy chess_rooms_no_direct_client_read on public.chess_rooms for select to authenticated using (false);
 revoke select on public.chess_rooms from anon,authenticated;
 create or replace function public.is_chess_room_member(p_room_id uuid)
 returns boolean language sql security definer set search_path = ''
