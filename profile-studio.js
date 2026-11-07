@@ -71,7 +71,7 @@ function mount3DMascot(stage,settings){
   scene.add(new T.HemisphereLight('#fff4df','#48516d',2.1));const key=new T.DirectionalLight('#fff0d7',3.1);key.position.set(-3,6,5);scene.add(key);const rim=new T.DirectionalLight('#9ac8ff',1.3);rim.position.set(4,3,-4);scene.add(rim);
   const floor=new T.Mesh(new T.PlaneGeometry(12,8),new T.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));floor.rotation.x=-Math.PI/2;floor.position.y=0;scene.add(floor);
   const mascot=makeMascotModel(T,settings.emoji);scene.add(mascot);mascot.scale.setScalar(settings.emoji==='🐙'?.82:1);
-  const clock=new T.Clock(),state={x:-2.35,z:0,direction:1,mode:'walk',until:0,pet:0},pointer={x:0,y:0};
+  const clock=new T.Clock(),state={x:-2.35,z:0,direction:1,mode:'walk',until:0,pet:0,nextPause:3.8},pointer={x:0,y:0};
   const resizeToStage=()=>{const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
   resize=new ResizeObserver(resizeToStage);resize.observe(stage);resizeToStage();
   const hit=()=>{state.mode='happy';state.until=clock.elapsedTime+2.2;state.pet=clock.elapsedTime;};
