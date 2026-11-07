@@ -179,7 +179,7 @@ function initPosts(){
  $p('postEditorCaption')?.addEventListener('input',event=>$p('postEditorCaptionCount').textContent=String(event.target.value.length));
  document.querySelectorAll('[data-editor-filter]').forEach(button=>button.addEventListener('click',()=>setEditorFilter(button.dataset.editorFilter)));
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$p('postEditorModal').hidden)closePostEditor();});
- document.addEventListener('brazilly:screen-changed',event=>{if(event.detail==='homeScreen'&&currentUser)setTimeout(loadPosts,100);});
+ document.addEventListener('brazilly:screen-changed',event=>{if(event.detail==='feedScreen'&&currentUser)setTimeout(loadPosts,100);});
  db.auth.onAuthStateChange((_event,session)=>{if(session){setTimeout(loadPosts,350);}else{$p('homePostsFeed')?.replaceChildren();closeComposer();}});
  db.auth.getSession().then(({data})=>{if(data.session)setTimeout(loadPosts,250);});
 }
