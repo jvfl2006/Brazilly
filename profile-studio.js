@@ -21,8 +21,8 @@ const defaults = {
 };
 const themeNames = ['lofi','pixel','anime','scrapbook','aurora','midnight','sunset','forest','rose'];
 const timeNames = ['dawn','day','sunset','night'];
-const itemTypes = ['sofa','desk','shelf','plant','lamp','frame','radio','rug','beanbag','poster','speaker'];
-const itemLabels = {sofa:'Sofá',desk:'Escrivaninha',shelf:'Estante',plant:'Planta',lamp:'Luminária',frame:'Quadro',radio:'Vitrola',rug:'Tapete',beanbag:'Pufe',poster:'Pôster',speaker:'Caixa de som'};
+const itemTypes = ['sofa','desk','shelf','plant','lamp','frame','radio','rug','beanbag','poster','speaker','calendar','board'];
+const itemLabels = {sofa:'Sofá',desk:'Escrivaninha',shelf:'Estante',plant:'Planta',lamp:'Luminária',frame:'Quadro',radio:'Vitrola',rug:'Tapete',beanbag:'Pufe',poster:'Pôster',speaker:'Caixa de som',calendar:'Calendário',board:'Mural de links'};
 const cache = new Map();
 const cleanupByRoot = new WeakMap();
 let editorSettings = null;
@@ -41,7 +41,7 @@ function normalize(raw) {
       id:String(item.id || ('furniture-'+index)).slice(0,64),
       type:item.type,
       x:Math.max(-4.7,Math.min(4.7,Number(item.x)||0)),
-      z:Math.max(-2.9,Math.min(2.9,Number(item.z)||0)),
+      z:Math.max(-3.55,Math.min(3.0,Number(item.z)||0)),
       rotation:Number.isFinite(Number(item.rotation)) ? Number(item.rotation) : 0
     }))
   };
@@ -180,7 +180,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   dustGeometry.setAttribute('position',new T.BufferAttribute(dustPositions,3));
   const dust=new T.Points(dustGeometry,new T.PointsMaterial({color:settings.accent,size:.025,transparent:true,opacity:.34,depthWrite:false}));roomRoot.add(dust);
   const itemGroups=new Map();
-  const widgetFor={sofa:'about',desk:'setup',shelf:'games',plant:'interests',lamp:'quote',frame:'gallery',radio:'music',speaker:'music',poster:'gallery',beanbag:'about',rug:'about'};
+  const widgetFor={sofa:'about',desk:'setup',shelf:'games',plant:'interests',lamp:'quote',frame:'gallery',radio:'music',speaker:'music',poster:'gallery',beanbag:'about',rug:'about',calendar:'countdown',board:'links'};
   function addFurniture(item){
     const g=new T.Group();g.position.set(item.x,0,item.z);g.rotation.y=item.rotation||0;g.userData.itemId=item.id;furnitureRoot.add(g);
     const wood=mats.wood,trim=mats.trim,fabric=mats.fabric,cream=mats.cream,metal=mats.metal;
@@ -222,10 +222,20 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
       cylinder(g,[0,.83,0],[.035,.045],1.35,metal,12);
       const shade=new T.Mesh(new T.ConeGeometry(.36,.5,24,1,true),mats.accent);shade.position.set(0,1.55,0);shade.rotation.x=Math.PI;g.add(shade);
       sphere(g,[0,1.36,0],[.13,.13,.13],mats.cream,12);
-    }else if(item.type==='frame'||item.type==='poster'){
+    }else if(item.type==='frame'||item.type==='poster'||item.type==='calendar'||item.type==='board'){
       box(g,'frame-wood',[0,2.25,0],[1.18,.9,.12],wood);
-      box(g,'frame-paper',[0,2.25,.075],[1.0,.72,.025],item.type==='poster'?mats.accent:cream,{shadow:false});
-      if(item.type==='frame'){
+      const paperMat=item.type==='poster'?mats.accent:cream;
+      box(g,'frame-paper',[0,2.25,.075],[1.0,.72,.025],paperMat,{shadow:false});
+      if(item.type==='calendar'){
+        box(g,'calendar-header',[0,2.52,.105],[.94,.12,.025],mats.bookA,{shadow:false});
+        for(let row=0;row<2;row++)for(let col=0;col<4;col++)box(g,'calendar-day',[-.34+col*.22,2.31-row*.17,.11],[.12,.08,.018],(row+col)%3===0?mats.accent:mats.bookB,{shadow:false});
+        for(const x of [-.22,.22])cylinder(g,[x,2.73,.09],[.035,.035],.09,metal,10);
+      }else if(item.type==='board'){
+        box(g,'board-note',[-.23,2.33,.105],[.32,.28,.028],mats.bookB,{shadow:false});
+        box(g,'board-note',[.22,2.18,.11],[.35,.22,.028],mats.bookA,{shadow:false});
+        sphere(g,[-.23,2.49,.14],[.045,.045,.035],mats.accent,10);
+        sphere(g,[.22,2.31,.14],[.045,.045,.035],mats.accent,10);
+      }else if(item.type==='frame'){
         const photoMaterial=new T.MeshBasicMaterial({color:'#ffffff'});
         const photoPlane=new T.Mesh(new T.PlaneGeometry(.76,.54),photoMaterial);photoPlane.position.set(0,2.25,.112);g.add(photoPlane);
         if(photos[0])new T.TextureLoader().load(photos[0],texture=>{texture.colorSpace=T.SRGBColorSpace;photoMaterial.map=texture;photoMaterial.needsUpdate=true;},undefined,()=>{});
@@ -312,7 +322,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   function moveSelected(x,z){
     const item=settings.room.items.find(o=>o.id===state.selectedId),group=itemGroups.get(state.selectedId);
     if(!item||!group)return;
-    item.x=Math.max(-4.65,Math.min(4.65,x));item.z=Math.max(-2.95,Math.min(2.95,z));
+    item.x=Math.max(-4.65,Math.min(4.65,x));item.z=Math.max(-3.5,Math.min(3.0,z));
     group.position.x=item.x;group.position.z=item.z;selectionRing.position.set(item.x,.045,item.z);
   }
   function onPointerDown(event){
@@ -364,7 +374,7 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
   stage.addEventListener('pointerleave',()=>{parallax.x=0;parallax.y=0;});
   function addItem(type,x=0,z=0){
     if(!itemTypes.includes(type)||settings.room.items.length>=24)return;
-    const item={id:'room-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),type,x:Math.max(-4.6,Math.min(4.6,x)),z:Math.max(-2.8,Math.min(2.8,z)),rotation:0};
+    const item={id:'room-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),type,x:Math.max(-4.6,Math.min(4.6,x)),z:Math.max(-3.5,Math.min(3.0,z)),rotation:0};
     settings.room.items.push(item);addFurniture(item);setSelected(item.id);
   }
   function rotateSelected(){
@@ -380,8 +390,8 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
     const content=$ps('profileWorldInfoContent'),panel=$ps('profileWorldInfoPanel');
     if(!content||!panel)return;
     content.replaceChildren();
-    const titles={sofa:'Sobre mim',beanbag:'Sobre mim',desk:'Meu setup e hobbies',shelf:'Jogos favoritos',plant:'Meus interesses',lamp:'Frase do momento',frame:'Minha galeria',poster:'Minha galeria',radio:'Minha música',speaker:'Minha música',rug:'Meu cantinho'};
-    const widget=({sofa:'about',beanbag:'about',desk:'setup',shelf:'games',plant:'interests',lamp:'quote',frame:'gallery',poster:'gallery',radio:'music',speaker:'music',rug:'about'})[type]||'about';
+    const titles={sofa:'Sobre mim',beanbag:'Sobre mim',desk:'Meu setup e hobbies',shelf:'Jogos favoritos',plant:'Meus interesses',lamp:'Frase do momento',frame:'Minha galeria',poster:'Minha galeria',radio:'Minha música',speaker:'Minha música',rug:'Meu cantinho',calendar:'Minha contagem regressiva',board:'Meus links'};
+    const widget=({sofa:'about',beanbag:'about',desk:'setup',shelf:'games',plant:'interests',lamp:'quote',frame:'gallery',poster:'gallery',radio:'music',speaker:'music',rug:'about',calendar:'countdown',board:'links'})[type]||'about';
     content.append(element('span','world-info-kicker','UM OBJETO DO MEU ESPAÇO'),element('h3','',titles[type]||'Meu espaço'));
     if(widget==='about'){
       if(profile.bio)content.append(element('p','',profile.bio));
@@ -401,6 +411,12 @@ function makeScene(T,renderer,stage,settings,profile,photos) {
       photos.slice(0,8).forEach(url=>{const a=element('a','');a.href=url;a.target='_blank';a.rel='noopener noreferrer';const img=element('img','');img.src=url;img.alt='Foto do perfil';a.append(img);gallery.append(a);});
       if(!gallery.childElementCount)content.append(element('p','world-info-muted','Ainda não há fotos na galeria.'));
       else content.append(gallery);
+    }else if(widget==='countdown'){
+      if(settings.countdownDate){const target=new Date(settings.countdownDate+'T00:00:00'),today=new Date(new Date().toDateString()),days=Math.ceil((target-today)/86400000);content.append(element('strong','world-countdown-number',days<0?'Chegou!':days===0?'É hoje!':String(days)),element('p','',settings.countdownTitle||'Contagem regressiva'),element('span','world-info-muted',days>0?'dias restantes':''));}
+      else content.append(element('p','world-info-muted','Escolha uma data no editor para criar sua contagem regressiva.'));
+    }else if(widget==='links'){
+      const links=element('div','world-info-links');settings.links.forEach(item=>{const url=safeUrl(item.url);if(url){const a=element('a','world-info-link',item.label+' ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';links.append(a);}});
+      if(links.childElementCount)content.append(links);else content.append(element('p','world-info-muted','Adicione seus links no editor.'));
     }else if(widget==='music'){
       content.append(element('p','',settings.music||'Ainda não escolhi uma música.'));
       const url=safeUrl(settings.musicUrl);if(url){const a=element('a','world-info-link','Abrir música ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';content.append(a);}
@@ -455,7 +471,7 @@ function editorMarkup(){
   const furniture=element('div','profile-world-furniture');
   furniture.append(element('strong','','Adicionar objetos'));
   const itemRow=element('div','profile-world-furniture-options');
-  ['plant','lamp','frame','shelf','sofa','beanbag','poster','radio','speaker','rug'].forEach(type=>{const b=element('button','world-furniture-button','＋ '+itemLabels[type]);b.type='button';b.dataset.worldAdd=type;itemRow.append(b);});
+  ['plant','lamp','frame','shelf','desk','sofa','beanbag','poster','radio','speaker','rug','calendar','board'].forEach(type=>{const b=element('button','world-furniture-button','＋ '+itemLabels[type]);b.type='button';b.dataset.worldAdd=type;itemRow.append(b);});
   furniture.append(itemRow);
   const selected=element('div','profile-world-selected');const selectedName=element('strong','', 'Nenhum objeto selecionado');selectedName.id='worldSelectedObjectName';
   const rotate=element('button','button button-outline','Girar 45°');rotate.type='button';rotate.id='worldRotateObject';rotate.disabled=true;
@@ -467,11 +483,13 @@ function editorMarkup(){
   const fields=[
     ['Frase do momento','input','worldQuote',180],
     ['Música / artista','input','worldMusic',100],
+    ['Título da contagem','input','worldCountdownTitle',70],
     ['Link da música','input','worldMusicUrl',500],
     ['Jogos favoritos','input','worldGames',180],
     ['Hobbies / setup','input','worldSetup',220]
   ];
   fields.forEach(([label,tag,id,max])=>{const wrap=element('label','',label),input=document.createElement(tag);input.id=id;input.maxLength=max;input.placeholder=label;wrap.append(input);contentGrid.append(wrap);});
+  const countdownWrap=element('label','','Data da contagem regressiva');const countdownDate=document.createElement('input');countdownDate.id='worldCountdownDate';countdownDate.type='date';countdownWrap.append(countdownDate);contentGrid.append(countdownWrap);
   const linksWrap=element('label','world-links-label','Links (um por linha: nome | URL)');const links=document.createElement('textarea');links.id='worldLinks';links.rows=2;links.maxLength=1200;links.placeholder='Meu portfólio | https://...';linksWrap.append(links);contentGrid.append(linksWrap);
   content.append(contentGrid);
   const footer=element('div','profile-world-editor-footer');const hint=element('span','world-editor-hint','Arraste um objeto para mudar sua posição.');hint.id='worldEditorHint';
@@ -546,6 +564,7 @@ async function render(root,profile,rawSettings,editable=false){
         const set=(id,value)=>{const node=$ps(id);if(node)node.value=value||'';};
         set('worldQuote',settings.quote);set('worldMusic',settings.music);set('worldMusicUrl',settings.musicUrl);
         set('worldGames',settings.games);set('worldSetup',settings.setup);
+        set('worldCountdownTitle',settings.countdownTitle);set('worldCountdownDate',settings.countdownDate);
         set('worldLinks',settings.links.map(x=>x.label+' | '+x.url).join('\n'));
       };
       fillEditor();
@@ -556,7 +575,8 @@ async function render(root,profile,rawSettings,editable=false){
         try{
           settings.quote=$ps('worldQuote').value.trim();settings.music=$ps('worldMusic').value.trim();
           settings.musicUrl=$ps('worldMusicUrl').value.trim();settings.games=$ps('worldGames').value.trim();
-          settings.setup=$ps('worldSetup').value.trim();
+          settings.setup=$ps('worldSetup').value.trim();settings.countdownTitle=$ps('worldCountdownTitle').value.trim();
+          settings.countdownDate=$ps('worldCountdownDate').value;
           settings.links=$ps('worldLinks').value.split('\n').map(line=>{const parts=line.split('|');return{label:(parts.shift()||'').trim().slice(0,50),url:parts.join('|').trim().slice(0,500)};}).filter(item=>item.label&&safeUrl(item.url)).slice(0,8);
           const saved=normalize(settings);
           const {error}=await db.from('profile_customizations').upsert({user_id:currentUser.id,settings:saved,updated_at:new Date().toISOString()},{onConflict:'user_id'});
