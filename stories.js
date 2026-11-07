@@ -7,22 +7,30 @@
     const version=++loadVersion;
     const strip=$('storiesStrip');strip.innerHTML='';
     if(typeof currentUser==='undefined'||!currentUser)return;
-    const {data,error}=await db.rpc('get_story_feed');
+    strip.innerHTML='<span class="field-note">Carregando stories...</span>';
+    const {data,error}=await db.rpc('get_story_feed_fast');
     if(version!==loadVersion)return;
     if(error){strip.textContent='Não foi possível carregar stories.';console.warn(error);return;}
     const uniqueStories=new Map();
     for(const story of data||[])if(!uniqueStories.has(story.story_id))uniqueStories.set(story.story_id,story);
     stories=[...uniqueStories.values()];
-    const userIds=[...new Set([...stories.map(s=>s.user_id),currentUser.id])];
     const avatarUrls=new Map();
-    const {data:photos,error:photoError}=await db.rpc('get_story_avatars',{p_user_ids:userIds});
-    if(version!==loadVersion)return;
-    if(!photoError){
-      for(const photo of photos||[]){
-        const {data}=db.storage.from('profile-photos').getPublicUrl(photo.storage_path);
-        if(data?.publicUrl)avatarUrls.set(photo.user_id,data.publicUrl);
-      }
-    }else console.warn('Não foi possível carregar os avatares dos stories:',photoError);
+    for(const story of stories){
+      if(!story.avatar_storage_path||avatarUrls.has(story.user_id))continue;
+      const {data}=db.storage.from('profile-photos').getPublicUrl(story.avatar_storage_path);
+      if(data?.publicUrl)avatarUrls.set(story.user_id,data.publicUrl);
+    }
+    if(!avatarUrls.has(currentUser.id)){
+      const {data:photos,error:photoError}=await db.rpc('get_story_avatars',{p_user_ids:[currentUser.id]});
+      if(version!==loadVersion)return;
+      if(!photoError){
+        const ownPhoto=(photos||[]).find(photo=>photo.user_id===currentUser.id);
+        if(ownPhoto){
+          const {data}=db.storage.from('profile-photos').getPublicUrl(ownPhoto.storage_path);
+          if(data?.publicUrl)avatarUrls.set(currentUser.id,data.publicUrl);
+        }
+      }else console.warn('Não foi possível carregar o avatar do seu story:',photoError);
+    }
     if(version!==loadVersion)return;
     const own=stories.filter(s=>s.user_id===currentUser.id);
     const add=document.createElement('button');add.type='button';add.className='story-tile story-create';
