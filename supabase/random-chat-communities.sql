@@ -27,8 +27,13 @@ create index if not exists random_chat_messages_session_idx
  on public.random_chat_messages(session_id,created_at);
 alter table public.random_chat_queue enable row level security;
 alter table public.random_chat_sessions enable row level security;
-alter table public.random_chat_messages enable row level security;\ndrop policy if exists random_chat_sessions_participants_read on public.random_chat_sessions;\ncreate policy random_chat_sessions_participants_read on public.random_chat_sessions for select to authenticated using(auth.uid() in(user_one,user_two));
-revoke all on public.random_chat_queue from anon,authenticated;\nrevoke all on public.random_chat_sessions from anon,authenticated;\ngrant select on public.random_chat_sessions to authenticated;\nrevoke all on public.random_chat_messages from anon,authenticated;
+alter table public.random_chat_messages enable row level security;
+drop policy if exists random_chat_sessions_participants_read on public.random_chat_sessions;
+create policy random_chat_sessions_participants_read on public.random_chat_sessions for select to authenticated using(auth.uid() in(user_one,user_two));
+revoke all on public.random_chat_queue from anon,authenticated;
+revoke all on public.random_chat_sessions from anon,authenticated;
+grant select on public.random_chat_sessions to authenticated;
+revoke all on public.random_chat_messages from anon,authenticated;
 grant select,insert on public.random_chat_messages to authenticated;
 drop policy if exists random_chat_messages_participants_read on public.random_chat_messages;
 create policy random_chat_messages_participants_read on public.random_chat_messages
@@ -49,7 +54,10 @@ as $find_random_chat$
 declare
  v_me uuid:=auth.uid(); v_session uuid; v_partner uuid; v_name text;
 begin
- if v_me is null then raise exception 'Entre na sua conta para conversar.'; end if;\n if not exists(select 1 from public.profiles p where p.user_id=v_me and p.birth_date<=current_date-interval '18 years') then\n  raise exception 'Conclua seu perfil e confirme que você tem 18 anos ou mais para usar o chat aleatório.';\n end if;
+ if v_me is null then raise exception 'Entre na sua conta para conversar.'; end if;
+ if not exists(select 1 from public.profiles p where p.user_id=v_me and p.birth_date<=current_date-interval '18 years') then
+  raise exception 'Conclua seu perfil e confirme que você tem 18 anos ou mais para usar o chat aleatório.';
+ end if;
  perform pg_advisory_xact_lock(hashtext('brazilly_random_chat_matchmaking'));
  select s.id,case when s.user_one=v_me then s.user_two else s.user_one end
  into v_session,v_partner
@@ -174,7 +182,10 @@ begin
   if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='random_chat_messages') then
    alter publication supabase_realtime add table public.random_chat_messages;
   end if;
-  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='random_chat_sessions') then\n   alter publication supabase_realtime add table public.random_chat_sessions;\n  end if;\n  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='community_messages') then
+  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='random_chat_sessions') then
+   alter publication supabase_realtime add table public.random_chat_sessions;
+  end if;
+  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='community_messages') then
    alter publication supabase_realtime add table public.community_messages;
   end if;
  end if;
