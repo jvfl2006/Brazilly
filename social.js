@@ -146,8 +146,11 @@
       const p=details[0];
       const fields=[['Profissão',p.profession],['Religião / crença',p.religion],['Relacionamento',p.relationship_status]];
       const rootDetails=$('profileDetailContent');
+      let meta=$('profileSocialMeta');
+      if(!meta){meta=document.createElement('div');meta.id='profileSocialMeta';rootDetails.append(meta);}
+      meta.innerHTML='';
       fields.filter(x=>x[1]).forEach(([label,value])=>{
-        const line=document.createElement('p');line.className='field-note';line.textContent=label+': '+value;rootDetails.append(line);
+        const line=document.createElement('p');line.className='field-note';line.textContent=label+': '+value;meta.append(line);
       });
     }
     if (otherId === currentUser.id) return;
@@ -233,6 +236,17 @@
   }
 
   // Evita manter o destaque de "Criar perfil" após concluir o cadastro.
+  const originalPreview = renderProfilePreview;
+  renderProfilePreview = async function() {
+    await originalPreview();
+    if (!currentProfile) return;
+    const root=$('profilePreview');
+    const fields=[['Profissão',currentProfile.profession],['Religião / crença',currentProfile.religion],['Relacionamento',currentProfile.relationshipStatus]];
+    fields.filter(x=>x[1]).forEach(([label,value])=>{
+      const line=document.createElement('p');line.className='field-note';line.textContent=label+': '+value;root.append(line);
+    });
+  };
+
   const originalSave = saveProfile;
   saveProfile = async function() {
     await originalSave();
