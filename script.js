@@ -288,6 +288,12 @@ function openProfileDetails(p) {
   if (p.intentions?.length) { const h=document.createElement('h3');h.textContent='O que procura';root.append(h);const v=document.createElement('p');v.className='field-note';v.textContent=p.intentions.join(' · ');root.append(v); }
   if (p.interests?.length) { const h=document.createElement('h3');h.textContent='Interesses';root.append(h);const tags=document.createElement('div');tags.className='preview-tags';p.interests.forEach(name=>{const tag=document.createElement('span');tag.textContent=name;tags.append(tag);});root.append(tags); }
   openModal('profileDetailModal');
+  $('favoriteProfileButton').textContent='☆ Favoritar';
+  if(currentUser){
+    db.from('user_favorites').select('target_user_id').eq('user_id',currentUser.id).eq('target_user_id',p.user_id).maybeSingle()
+      .then(({data,error})=>{if(!error && selectedPublicProfile?.user_id===p.user_id && data)$('favoriteProfileButton').textContent='★ Favoritado';})
+      .catch(error=>console.warn('Não foi possível consultar favorito:',error));
+  }
 }
 $('favoriteProfileButton').addEventListener('click', async () => {
   if (!currentUser || !selectedPublicProfile) { openModal('loginModal'); return; }
