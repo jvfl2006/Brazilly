@@ -183,3 +183,26 @@ begin
  return query select p.user_id,p.display_name,case when p.show_city then p.city else null end,coalesce(array_agg(distinct mine.interest_name) filter(where mine.interest_name is not null),'{}'::text[]),count(distinct mine.interest_name)::integer from public.profiles p left join public.user_interests theirs on theirs.user_id=p.user_id left join public.user_interests mine on mine.user_id=v_me and lower(mine.interest_name)=lower(theirs.interest_name) where p.user_id<>v_me and coalesce(p.private_profile,false)=false and not public.is_blocked_between(v_me,p.user_id) and not exists(select 1 from public.friend_requests f where f.status='accepted' and f.user_one=least(v_me,p.user_id) and f.user_two=greatest(v_me,p.user_id)) group by p.user_id,p.display_name,p.show_city,p.city order by count(distinct mine.interest_name) desc,p.created_at desc limit greatest(1,least(p_limit,50));
 end; $$;
 revoke all on function public.get_social_recommendations(integer) from public,anon;grant execute on function public.get_social_recommendations(integer) to authenticated;
+
+-- Follow-up hardening applied after the initial rollout.
+drop policy if exists voice_rooms_delete_owner on public.voice_rooms;
+create policy voice_rooms_delete_owner on public.voice_rooms for delete to authenticated using(created_by=(select auth.uid()));
+create or replace function public.get_social_recommendations(p_limit integer default 20)
+returns table(user_id uuid,display_name text,city text,shared_interests text[],shared_count integer)
+language plpgsql stable security definer set search_path=public
+as $$
+declare v_me uuid:=auth.uid();
+begin
+ if v_me is null then raise exception 'Entre na sua conta.'; end if;
+ return query select p.user_id,p.display_name,case when p.show_city then p.city else null end,
+ coalesce(array_agg(distinct mine.interest_name) filter(where mine.interest_name is not null),'{}'::text[]),
+ count(distinct mine.interest_name)::integer
+ from public.profiles p left join public.user_interests theirs on theirs.user_id=p.user_id
+ left join public.user_interests mine on mine.user_id=v_me and lower(mine.interest_name)=lower(theirs.interest_name)
+ where p.user_id<>v_me and coalesce(p.private_profile,false)=false and not public.is_blocked_between(v_me,p.user_id)
+ and not exists(select 1 from public.friend_requests f where f.status='accepted' and f.user_one=least(v_me,p.user_id) and f.user_two=greatest(v_me,p.user_id))
+ group by p.user_id,p.display_name,p.show_city,p.city,p.created_at
+ order by count(distinct mine.interest_name) desc,p.created_at desc limit greatest(1,least(p_limit,50));
+end; $$;
+revoke all on function public.get_social_recommendations(integer) from public,anon;
+grant execute on function public.get_social_recommendations(integer) to authenticated;
