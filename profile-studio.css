@@ -993,3 +993,44 @@ body.profile-photo-viewer-open{overflow:hidden}
     padding:18px 16px 22px;
   }
 }
+
+
+
+/* Let the profile page grow with its actual content; the document scrolls only when needed. */
+#profileScreen.profile-world-page.inner-screen.active{
+  height:auto !important;
+  min-height:100vh;
+  max-height:none !important;
+  overflow:visible !important;
+}
+.profile-world-page .profile-world-stage-2d{
+  height:auto !important;
+  min-height:100vh;
+  padding-bottom:clamp(48px,7vh,88px);
+  overflow:visible !important;
+}
+.profile-world-page .profile-world-profile-card{
+  position:relative !important;
+  top:auto !important;
+  left:auto !important;
+  transform:none !important;
+  width:min(1180px,calc(100% - 72px)) !important;
+  margin:clamp(220px,26vh,275px) auto 0 !important;
+  max-height:none !important;
+  overflow:visible !important;
+}
+.profile-world-page .profile-world-profile-content{
+  height:auto !important;
+  max-height:none !important;
+  overflow:visible !important;
+}
+@media(max-width:760px){
+  .profile-world-page .profile-world-stage-2d{
+    min-height:100vh;
+    padding-bottom:36px;
+  }
+  .profile-world-page .profile-world-profile-card{
+    width:calc(100% - 24px) !important;
+    margin:230px auto 0 !important;
+  }
+}
