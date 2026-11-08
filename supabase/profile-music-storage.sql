@@ -6,7 +6,7 @@ values (
  'profile-music',
  true,
  31457280,
- array['audio/mpeg','audio/wav','audio/ogg','audio/mp4','audio/aac','audio/flac','audio/aiff','audio/webm']
+ array['audio/*']
 )
 on conflict (id) do update
 set public = excluded.public,
