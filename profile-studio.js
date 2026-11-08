@@ -44,13 +44,17 @@ const BUILTIN_SCENE_FALLBACK=[
 ];
 async function loadSceneCatalog(){
  const fallback=BUILTIN_SCENE_FALLBACK.map(row=>({...row,name:row.title,file:db.storage.from('profile-scene-library').getPublicUrl(row.storage_path).data.publicUrl}));
- try{
+ const loadRemote=async()=>{
   const {data,error}=await db.from('profile_scene_catalog').select('id,title,description,storage_path,mime_type,sort_order,created_at').eq('is_active',true).order('sort_order',{ascending:true}).order('created_at',{ascending:true});
-  if(error){console.warn('Catálogo de cenários indisponível; usando catálogo local:',error.message);return fallback;}
+  if(error)throw error;
   const rows=(data||[]).map(row=>({...row,name:row.title,file:db.storage.from('profile-scene-library').getPublicUrl(row.storage_path).data.publicUrl}));
-  for(const item of fallback)if(!rows.some(row=>row.id===item.id))rows.unshift(item);
-  return rows;
- }catch(error){console.warn('Falha ao consultar catálogo de cenários; usando catálogo local:',error);return fallback;}
+  const known=new Set(rows.map(row=>row.id));
+  return [...fallback.filter(item=>!known.has(item.id)),...rows];
+ };
+ try{
+  if(window.BrazillyCache?.getOrLoad)return await window.BrazillyCache.getOrLoad('public:profile-scene-catalog:v1',loadRemote,{ttlMs:5*60*1000});
+  return await loadRemote();
+ }catch(error){console.warn('Catálogo de cenários indisponível; usando catálogo local:',error.message||error);return fallback;}
 }
 function sceneMedia(preset){const video=['video/mp4','video/webm'].includes(preset.mime_type);const media=el(video?'video':'img','profile-world-animated-background');media.src=preset.file;media.alt=video?'':'Cenário '+preset.name;media.draggable=false;if(video){media.autoplay=true;media.loop=true;media.muted=true;media.playsInline=true;media.preload='metadata';media.setAttribute('aria-hidden','true');}return media;}
 function colors(theme,time){const p={lofi:['#d9c2aa','#b88f7c','#9a6e60','#f3c59b','#f4d7c0'],anime:['#e8c4d7','#b5a6ce','#a9788d','#f8b7ca','#f9d9df'],pixel:['#a9c8c8','#73989c','#8e6b58','#b6d9d6','#f2d38d'],scrapbook:['#e7d5bf','#c9a9a0','#a77e70','#e9b8b4','#fff0d8'],aurora:['#4a5877','#34465f','#363b59','#8cb4d6','#c6b6f5'],midnight:['#303b59','#202b47','#30304c','#738bd0','#b3c7ff'],sunset:['#e9b5a2','#c98e91','#95626a','#ffc08e','#ffe0bb'],forest:['#b7c5a7','#819c85','#746a50','#b8c99a','#e1d5a8'],rose:['#e4b8d2','#bc8eaf','#865c7c','#f4a9cc','#f8d2e4']}[theme]||['#d9c2aa','#b88f7c','#9a6e60','#f3c59b','#f4d7c0'];const sky={dawn:'#d8c6d9',day:'#b8dce9',sunset:p[3],night:'#26395f'}[time];return {wall:p[0],side:p[1],floor:p[2],accent:p[3],fabric:p[4],sky,glow:time==='night'?'#a4b8ef':'#ffe1bd'};}
