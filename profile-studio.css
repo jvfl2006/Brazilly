@@ -995,7 +995,7 @@ body.profile-photo-viewer-open{overflow:hidden}
 }
 
 
-/* Profile soundtrack: compact player and MP3 editor. */
+/* Profile soundtrack: compact player and audio format editor. */
 .profile-music-player{
  display:inline-flex;align-items:center;gap:8px;max-width:min(48vw,410px);min-width:0;
  padding:7px 10px;border:1px solid rgba(255,255,255,.25);border-radius:999px;
