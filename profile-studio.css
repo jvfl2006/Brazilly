@@ -993,3 +993,57 @@ body.profile-photo-viewer-open{overflow:hidden}
     padding:18px 16px 22px;
   }
 }
+
+
+/* Profile soundtrack: compact player and MP3 editor. */
+.profile-music-player{
+ display:inline-flex;align-items:center;gap:8px;max-width:min(48vw,410px);min-width:0;
+ padding:7px 10px;border:1px solid rgba(255,255,255,.25);border-radius:999px;
+ background:rgba(17,18,34,.68);color:#fff;backdrop-filter:blur(16px);
+ box-shadow:0 7px 24px rgba(8,6,22,.24);text-shadow:none;letter-spacing:normal;text-transform:none;
+}
+.profile-music-player button{
+ display:grid;place-items:center;flex:0 0 auto;width:27px;height:27px;padding:0;
+ border:1px solid rgba(255,255,255,.2);border-radius:50%;background:rgba(255,255,255,.1);
+ color:#fff;font:inherit;font-size:12px;font-weight:800;cursor:pointer;
+}
+.profile-music-player button:hover,.profile-music-player button.is-active{background:var(--profile-accent);color:#211a22;border-color:var(--profile-accent)}
+.profile-music-copy{display:flex;flex-direction:column;min-width:0;max-width:190px;line-height:1.25}
+.profile-music-title{overflow:hidden;color:#fff;font-size:10px;font-weight:850;text-overflow:ellipsis;white-space:nowrap}
+.profile-music-artist{overflow:hidden;color:#ffffffb8;font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+.profile-music-autoplay{font-size:8px!important;letter-spacing:.04em}
+.profile-music-volume{width:62px;height:4px;accent-color:var(--profile-accent);cursor:pointer}
+.profile-music-audio{display:none}
+.profile-music-editor{display:flex;flex-direction:column;gap:12px;padding:15px;border:1px solid rgba(225,205,255,.15);border-radius:15px;background:rgba(255,255,255,.035)}
+.profile-music-editor-heading{display:flex;flex-direction:column;gap:5px}
+.profile-music-editor-heading strong{color:#f7f1e8;font-size:13px}
+.profile-music-editor-heading small{color:#aeb8cb;font-size:11px;line-height:1.55}
+.profile-music-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.profile-music-upload-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.profile-music-rights{display:flex!important;flex-direction:row!important;align-items:center;gap:7px!important;width:100%;font-size:10px!important;font-weight:600!important}
+.profile-music-rights input{width:15px;height:15px;accent-color:var(--profile-accent)}
+.profile-music-file-button{
+ display:inline-flex!important;align-items:center;justify-content:center;padding:10px 14px;
+ border:1px solid var(--profile-accent);border-radius:10px;background:color-mix(in srgb,var(--profile-accent) 17%,transparent);
+ color:#fff!important;font-size:11px!important;font-weight:800!important;cursor:pointer;
+}
+.profile-music-file-button:hover{background:color-mix(in srgb,var(--profile-accent) 28%,transparent)}
+.profile-music-upload-row .button{padding:9px 12px;font-size:10px}
+#worldMusicStatus{color:#c9c0d8;font-size:10px;line-height:1.5}
+#worldMusicPreview{width:min(100%,440px);height:36px;accent-color:var(--profile-accent)}
+#worldMusicPreview[hidden]{display:none}
+@media(max-width:700px){
+ .profile-world-topline{align-items:flex-start}
+ .profile-music-player{max-width:60vw;gap:5px;padding:5px 7px}
+ .profile-music-copy{max-width:clamp(72px,22vw,130px)}
+ .profile-music-title{font-size:9px}
+ .profile-music-artist{font-size:8px}
+ .profile-music-player button{width:24px;height:24px}
+ .profile-music-volume{width:36px}
+ .profile-music-autoplay{display:none!important}
+ .profile-music-fields{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+ .profile-world-page .profile-world-topline{align-items:flex-start;gap:8px}
+ .profile-world-page .profile-music-player{max-width:64vw}
+}
