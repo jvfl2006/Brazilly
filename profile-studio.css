@@ -923,3 +923,73 @@ body.profile-photo-viewer-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){
  .profile-cat-mascot,.profile-cat-tail{animation:none!important}
 }
+
+
+/* Profile card: keep section pills clear of divider lines and use page-level scrolling. */
+#profileScreen.profile-world-page.inner-screen.active{
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  overscroll-behavior-y:auto;
+}
+.profile-world-page .profile-world-stage-2d{
+  height:clamp(1000px,calc(100vh + 100px),1200px);
+  min-height:1000px;
+}
+.profile-world-page .profile-world-profile-card{
+  max-height:none !important;
+  overflow:visible !important;
+}
+.profile-world-page .profile-world-profile-tabs{
+  position:relative;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  min-height:62px;
+  padding:12px 24px 14px clamp(190px,14vw,245px);
+  border:0 !important;
+  border-bottom:0 !important;
+  background:linear-gradient(90deg,rgba(255,255,255,.025),transparent 72%);
+  overflow:visible !important;
+}
+.profile-world-page .profile-world-profile-tabs::after{
+  content:"";
+  position:absolute;
+  left:24px;
+  right:24px;
+  bottom:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(235,220,255,.13) 12%,rgba(235,220,255,.13) 88%,transparent);
+  pointer-events:none;
+}
+.profile-world-page .profile-world-profile-content{
+  flex:0 0 auto;
+  min-height:0;
+  max-height:none !important;
+  overflow:visible !important;
+  overscroll-behavior: auto !important;
+  padding:20px 24px 26px;
+}
+.profile-world-page .profile-world-tab-panel{min-height:0}
+@media(max-width:760px){
+  .profile-world-page .profile-world-stage-2d{
+    height:1180px;
+    min-height:1180px;
+  }
+  .profile-world-page .profile-world-profile-card{
+    max-height:none !important;
+  }
+  .profile-world-page .profile-world-profile-tabs{
+    min-height:0;
+    padding:12px 14px 14px;
+    justify-content:flex-start;
+    gap:6px;
+  }
+  .profile-world-page .profile-world-profile-tabs::after{
+    left:14px;
+    right:14px;
+  }
+  .profile-world-page .profile-world-profile-content{
+    padding:18px 16px 22px;
+  }
+}
