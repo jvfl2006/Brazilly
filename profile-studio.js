@@ -158,10 +158,24 @@ function installProfilePhotoViewer(root){
  overlay.addEventListener('click',event=>{if(event.target===overlay)hide();});
  document.addEventListener('keydown',event=>{if(overlay.hidden)return;if(event.key==='Escape')hide();if(event.key==='ArrowLeft')move(-1);if(event.key==='ArrowRight')move(1);});
 }
+function profileCatMascot(){
+ const mascot=el('div','profile-cat-mascot');
+ mascot.setAttribute('aria-hidden','true');
+ mascot.innerHTML='<svg viewBox="0 0 260 150" role="presentation">'+
+ '<defs><linearGradient id="catFur" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0d9"/><stop offset=".55" stop-color="#e9c7a5"/><stop offset="1" stop-color="#bd8c70"/></linearGradient><linearGradient id="catShade" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d6a987"/><stop offset="1" stop-color="#a97560"/></linearGradient><radialGradient id="catCheek"><stop stop-color="#f3a9a0" stop-opacity=".8"/><stop offset="1" stop-color="#f3a9a0" stop-opacity="0"/></radialGradient></defs>'+
+ '<ellipse cx="143" cy="111" rx="91" ry="13" fill="#090817" opacity=".2"/>'+
+ '<g class="profile-cat-tail"><path d="M205 82C236 74 244 48 228 30C216 17 199 24 204 39" fill="none" stroke="#bd8c70" stroke-width="16" stroke-linecap="round"/><path d="M205 82C236 74 244 48 228 30C216 17 199 24 204 39" fill="none" stroke="#f2d8bd" stroke-width="9" stroke-linecap="round"/><path d="M226 31Q233 36 230 44" fill="none" stroke="#c18d70" stroke-width="3" stroke-linecap="round"/></g>'+
+ '<g class="profile-cat-body"><path d="M73 79C91 45 133 36 177 49C201 56 215 76 210 96C206 116 178 123 132 119L82 112C57 108 51 94 73 79Z" fill="url(#catFur)" stroke="#a87862" stroke-width="2.5"/><path d="M103 52Q119 70 110 91M145 48Q159 68 148 91M179 58Q189 74 177 94" fill="none" stroke="#b98268" stroke-width="7" stroke-linecap="round" opacity=".58"/><path d="M95 107Q115 121 133 117M157 116Q179 121 193 109" fill="none" stroke="#fff1dc" stroke-width="5" stroke-linecap="round"/></g>'+
+ '<path d="M90 91Q87 112 95 129Q102 139 115 133L122 122L117 107Z" fill="#e9c7a5" stroke="#a87862" stroke-width="2"/><path d="M153 102Q151 122 163 135Q175 141 183 129L181 111Z" fill="#e9c7a5" stroke="#a87862" stroke-width="2"/><path d="M94 128Q104 134 116 128M163 131Q174 136 182 127" fill="none" stroke="#fff0dc" stroke-width="4" stroke-linecap="round"/>'+
+ '<g class="profile-cat-head"><path d="M31 70L35 34Q37 22 48 33L67 49Q82 44 96 51L113 34Q123 26 126 42L130 76Q126 105 93 112Q57 118 37 97Q27 86 31 70Z" fill="url(#catFur)" stroke="#a87862" stroke-width="2.5"/><path d="M39 47L42 35L57 50Z" fill="#d99591"/><path d="M105 48L119 37L120 58Z" fill="#d99591"/><path d="M46 81Q56 72 66 81M91 81Q101 72 111 81" fill="none" stroke="#684d4b" stroke-width="3.5" stroke-linecap="round"/><path d="M75 91Q81 96 87 91" fill="none" stroke="#684d4b" stroke-width="2.5" stroke-linecap="round"/><path d="M80 86L84 88L80 91L76 88Z" fill="#bd7776"/><path d="M79 92Q77 100 69 99M84 92Q86 100 94 99" fill="none" stroke="#684d4b" stroke-width="2" stroke-linecap="round"/><ellipse cx="49" cy="91" rx="14" ry="10" fill="url(#catCheek)"/><ellipse cx="107" cy="91" rx="14" ry="10" fill="url(#catCheek)"/><path d="M34 89L10 85M35 96L12 99M112 89L135 84M111 97L134 101" stroke="#f8e7d7" stroke-width="2" stroke-linecap="round"/></g>'+
+ '</svg>';
+ return mascot;
+}
 function enhanceProfileCard(stage,preview,settings={}){
  if(!stage||!preview||stage.querySelector('.profile-world-profile-card'))return;
  const identity=stage.querySelector('.profile-world-identity');
  const card=el('section','profile-world-profile-card');
+ card.append(profileCatMascot());
  const heading=el('div','profile-world-card-heading');
  const featuredAvatar=stage.querySelector('.profile-world-featured-avatar');
  if(featuredAvatar){featuredAvatar.classList.remove('profile-world-featured-avatar');featuredAvatar.classList.add('profile-world-header-avatar');heading.append(featuredAvatar);}
