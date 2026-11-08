@@ -1,6 +1,13 @@
--- Brazilly profile soundtrack uploads (MP3 only).
+-- Brazilly profile soundtrack uploads.
+-- Common browser-playable audio formats, with a 30 MiB per-file limit.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('profile-music', 'profile-music', true, 15728640, array['audio/mpeg'])
+values (
+ 'profile-music',
+ 'profile-music',
+ true,
+ 31457280,
+ array['audio/mpeg','audio/wav','audio/ogg','audio/mp4','audio/aac','audio/flac','audio/aiff','audio/webm']
+)
 on conflict (id) do update
 set public = excluded.public,
     file_size_limit = excluded.file_size_limit,
