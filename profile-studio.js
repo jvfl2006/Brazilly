@@ -256,6 +256,21 @@ function enhanceProfileCard(stage,preview,settings={}){
  preview.replaceChildren(content);
  card.append(tabs,preview);
  stage.append(card);
+ // Keep the wallpaper stage tall enough to contain the complete profile card.
+ // The card itself remains in its existing position; only the scene's height grows.
+ const syncStageHeight=()=>{
+  const baseHeight=Number(stage.dataset.profileBaseHeight)||stage.getBoundingClientRect().height;
+  stage.dataset.profileBaseHeight=String(baseHeight);
+  const cardBottom=card.offsetTop+card.offsetHeight+72;
+  stage.style.height=Math.max(baseHeight,cardBottom)+'px';
+ };
+ if(stage._profileCardResizeObserver)stage._profileCardResizeObserver.disconnect();
+ if(typeof ResizeObserver!=='undefined'){
+  const observer=new ResizeObserver(syncStageHeight);
+  observer.observe(card);
+  stage._profileCardResizeObserver=observer;
+ }
+ syncStageHeight();
  installProfilePhotoViewer(stage);
 }
 async function renderOwn(){if(!currentUser||!currentProfile)return;const version=++ownRenderVersion,userId=currentUser.id;try{const s=await load(userId);if(version!==ownRenderVersion||currentUser?.id!==userId||!$('profileScreen')?.classList.contains('active'))return;currentProfile.profileCustomization=s;const root=$('profileCustomizationPreview');const previewSnapshot=$('profilePreview')?.cloneNode(true)||null;await render(root,currentProfile,s,true);if(version!==ownRenderVersion||currentUser?.id!==userId||!$('profileScreen')?.classList.contains('active'))return;const stage=root?.querySelector('.profile-world-stage-2d');const preview=$('profilePreview')||previewSnapshot,editProfile=$('profileEditButton');if(stage&&preview)enhanceProfileCard(stage,preview,s);if(editProfile)editProfile.classList.remove('profile-world-edit-profile');const page=$('profileScreen');if(page)page.classList.add('profile-world-page');}catch(e){if(version!==ownRenderVersion)return;console.warn(e);if($('profileCustomizationPreview'))$('profileCustomizationPreview').textContent='Não foi possível carregar seu ambiente personalizado.';}}
