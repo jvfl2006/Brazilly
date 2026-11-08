@@ -197,7 +197,7 @@ function enhanceProfileCard(stage,preview,settings={}){
  if(details.childElementCount)aboutMain.append(el('h3','profile-world-section-title','Mais sobre mim'),details);
  if(!aboutMain.childElementCount)aboutMain.append(el('p','profile-world-empty','Este perfil ainda não tem uma descrição.'));
  const galleryCard=el('section','profile-world-side-card profile-world-gallery-card');
- galleryCard.append(el('div','profile-world-side-heading',el('span','profile-world-side-eyebrow','MOMENTOS'),el('h3','profile-world-section-title','Fotos recentes')));
+ const galleryHeading=el('div','profile-world-side-heading');galleryHeading.append(el('span','profile-world-side-eyebrow','MOMENTOS'),el('h3','profile-world-section-title','Fotos recentes'));galleryCard.append(galleryHeading);
  if(photosNode){
   const previewGallery=photosNode.cloneNode(true);
   previewGallery.classList.add('profile-world-mini-gallery');
@@ -208,7 +208,7 @@ function enhanceProfileCard(stage,preview,settings={}){
   photosPanel.append(el('p','profile-world-empty','Ainda não há fotos publicadas.'));
  }
  const interestsCard=el('section','profile-world-side-card profile-world-interests-card');
- interestsCard.append(el('div','profile-world-side-heading',el('span','profile-world-side-eyebrow','O QUE EU CURTO'),el('h3','profile-world-section-title','Interesses')));
+ const interestsHeading=el('div','profile-world-side-heading');interestsHeading.append(el('span','profile-world-side-eyebrow','O QUE EU CURTO'),el('h3','profile-world-section-title','Interesses'));interestsCard.append(interestsHeading);
  if(tagsNode){
   const previewTags=tagsNode.cloneNode(true);
   previewTags.classList.add('profile-world-mini-tags');
@@ -244,7 +244,7 @@ function enhanceProfileCard(stage,preview,settings={}){
  stage.append(card);
  installProfilePhotoViewer(stage);
 }
-async function renderOwn(){if(!currentUser||!currentProfile)return;const version=++ownRenderVersion,userId=currentUser.id;try{const s=await load(userId);if(version!==ownRenderVersion||currentUser?.id!==userId||!$('profileScreen')?.classList.contains('active'))return;currentProfile.profileCustomization=s;const root=$('profileCustomizationPreview');const previewSnapshot=$('profilePreview')?.cloneNode(true)||null;await render(root,currentProfile,s,true);if(version!==ownRenderVersion||currentUser?.id!==userId||!$('profileScreen')?.classList.contains('active'))return;const stage=root?.querySelector('.profile-world-stage-2d');const preview=$('profilePreview')||previewSnapshot,editProfile=$('profileEditButton');if(stage&&preview)enhanceProfileCard(stage,preview,s);if(stage&&editProfile){editProfile.classList.add('profile-world-edit-profile');stage.append(editProfile);}const page=$('profileScreen');if(page)page.classList.add('profile-world-page');}catch(e){if(version!==ownRenderVersion)return;console.warn(e);if($('profileCustomizationPreview'))$('profileCustomizationPreview').textContent='Não foi possível carregar seu ambiente personalizado.';}}
+async function renderOwn(){if(!currentUser||!currentProfile)return;const version=++ownRenderVersion,userId=currentUser.id;try{const s=await load(userId);if(version!==ownRenderVersion||currentUser?.id!==userId||!$('profileScreen')?.classList.contains('active'))return;currentProfile.profileCustomization=s;const root=$('profileCustomizationPreview');const previewSnapshot=$('profilePreview')?.cloneNode(true)||null;await render(root,currentProfile,s,true);if(version!==ownRenderVersion||currentUser?.id!==userId||!$('profileScreen')?.classList.contains('active'))return;const stage=root?.querySelector('.profile-world-stage-2d');const preview=$('profilePreview')||previewSnapshot,editProfile=$('profileEditButton');if(stage&&preview)enhanceProfileCard(stage,preview,s);if(editProfile)editProfile.classList.remove('profile-world-edit-profile');const page=$('profileScreen');if(page)page.classList.add('profile-world-page');}catch(e){if(version!==ownRenderVersion)return;console.warn(e);if($('profileCustomizationPreview'))$('profileCustomizationPreview').textContent='Não foi possível carregar seu ambiente personalizado.';}}
 function publicProfilePreview(p,photosList){
  const preview=el('div','');
  const statusLabels={available:'Disponível',busy:'Ocupado',away:'Ausente',offline:'Offline'};

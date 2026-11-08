@@ -873,3 +873,18 @@ body.profile-photo-viewer-open{overflow:hidden}
   box-shadow:0 0 0 6px rgba(150,95,230,.27),0 12px 28px rgba(8,5,24,.44);
  }
 }
+
+
+/* Keep profile tabs from becoming a vertical wheel-scroll container. */
+.profile-world-page .profile-world-profile-tabs{
+  overflow:visible !important;
+  overflow-x:visible !important;
+  overflow-y:visible !important;
+  flex-wrap:wrap;
+  min-height:0;
+}
+.profile-world-page .profile-world-profile-card .profile-world-profile-content{
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
