@@ -888,3 +888,38 @@ body.profile-photo-viewer-open{overflow:hidden}
   overflow-y:auto;
   overscroll-behavior:contain;
 }
+
+
+/* Cozy profile companion: a relaxed cat resting on the upper-right card edge. */
+.profile-world-page .profile-world-profile-card{
+ overflow:visible;
+}
+.profile-cat-mascot{
+ position:absolute;z-index:14;top:-57px;right:22px;
+ width:clamp(150px,16vw,218px);height:auto;aspect-ratio:260/150;
+ pointer-events:none;user-select:none;
+ filter:drop-shadow(0 9px 12px rgba(10,7,22,.28));
+ transform-origin:80% 90%;
+ animation:profile-cat-breathe 4.8s ease-in-out infinite;
+}
+.profile-cat-mascot svg{display:block;width:100%;height:100%;overflow:visible}
+.profile-cat-tail{
+ transform-box:view-box;transform-origin:79% 55%;
+ animation:profile-cat-tail-wag 1.65s ease-in-out infinite;
+}
+@keyframes profile-cat-tail-wag{
+ 0%,100%{transform:rotate(-3deg)}
+ 28%{transform:rotate(13deg)}
+ 58%{transform:rotate(-9deg)}
+ 78%{transform:rotate(8deg)}
+}
+@keyframes profile-cat-breathe{
+ 0%,100%{translate:0 0}
+ 50%{translate:0 2px}
+}
+@media(max-width:760px){
+ .profile-cat-mascot{top:-43px;right:7px;width:clamp(122px,36vw,164px)}
+}
+@media(prefers-reduced-motion:reduce){
+ .profile-cat-mascot,.profile-cat-tail{animation:none!important}
+}
